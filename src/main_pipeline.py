@@ -46,3 +46,5 @@ if __name__ == "__main__":
                 counts += 1
                 train_connectnet(args, iteration=i, new_optim_state=True)
                 winner = evaluate_nets(args, i, i + 1)
+
+        rtpt.step()
