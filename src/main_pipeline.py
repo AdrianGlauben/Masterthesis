@@ -15,6 +15,8 @@ logging.basicConfig(format='%(asctime)s [%(levelname)s]: %(message)s', \
                     datefmt='%m/%d/%Y %I:%M:%S %p', level=logging.INFO)
 logger = logging.getLogger(__file__)
 
+rtpt = RTPT(name_initials="AG", experiment_name='C4', max_iterations=args.total_iterations)
+
 if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("--iteration", type=int, default=0, help="Current iteration number to resume from")
@@ -30,8 +32,6 @@ if __name__ == "__main__":
     parser.add_argument("--gradient_acc_steps", type=int, default=1, help="Number of steps of gradient accumulation")
     parser.add_argument("--max_norm", type=float, default=1.0, help="Clipped gradient norm")
     args = parser.parse_args()
-
-    rtpt = RTPT(name_initials="AG", experiment_name='C4_Planning_Model', max_iterations=args.total_iterations)
 
     logger.info("Starting iteration pipeline...")
     for i in range(args.iteration, args.total_iterations):
