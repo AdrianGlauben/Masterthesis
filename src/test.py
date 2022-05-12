@@ -3,7 +3,6 @@ from evaluator_c4 import load_pickle
 from connect_board import board
 import numpy as np
 
-
 array = [[0, 1], [2, 3], [4, 5], [6, 7], [8, 9]]
 array = array[-int(len(array)*0.3):]
 print(array)
