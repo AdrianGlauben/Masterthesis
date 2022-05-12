@@ -4,5 +4,5 @@ MAINTAINER AdrianGlauben
 
 RUN cd /root \
     && git clone https://github.com/AdrianGlauben/Masterthesis --recursive \
-    && cd /root/Masterthesis
+    && cd /root/Masterthesis \
     && pip install -r requirements.txt
