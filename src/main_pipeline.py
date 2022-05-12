@@ -9,6 +9,7 @@ from train_c4 import train_connectnet
 from evaluator_c4 import evaluate_nets
 from argparse import ArgumentParser
 import logging
+from rtpt import RTPT
 
 logging.basicConfig(format='%(asctime)s [%(levelname)s]: %(message)s', \
                     datefmt='%m/%d/%Y %I:%M:%S %p', level=logging.INFO)
@@ -29,6 +30,8 @@ if __name__ == "__main__":
     parser.add_argument("--gradient_acc_steps", type=int, default=1, help="Number of steps of gradient accumulation")
     parser.add_argument("--max_norm", type=float, default=1.0, help="Clipped gradient norm")
     args = parser.parse_args()
+
+    rtpt = RTPT(name_initials="AG", experiment_name='C4_Planning_Model', max_iterations=args.total_iterations)
 
     logger.info("Starting iteration pipeline...")
     for i in range(args.iteration, args.total_iterations):
