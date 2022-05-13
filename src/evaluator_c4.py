@@ -157,7 +157,7 @@ def evaluate_nets(args, iteration_1, iteration_2) :
         current_cnet.load_state_dict(checkpoint['state_dict'])
         checkpoint = torch.load(best_net_filename)
         best_cnet.load_state_dict(checkpoint['state_dict'])
-        arena1 = arena(current_cnet=current_cnet, best_cnet=best_cnet, args.expansions_per_move)
+        arena1 = arena(current_cnet=current_cnet, best_cnet=best_cnet, expansions_per_move=args.expansions_per_move)
         arena1.evaluate(num_games=args.num_evaluator_games, cpu=0)
 
         stats = load_pickle("wins_cpu_%i" % (0))
