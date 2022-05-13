@@ -29,7 +29,7 @@ if __name__ == "__main__":
     parser.add_argument("--lr", type=float, default=0.001, help="learning rate")
     parser.add_argument("--gradient_acc_steps", type=int, default=1, help="Number of steps of gradient accumulation")
     parser.add_argument("--max_norm", type=float, default=1.0, help="Clipped gradient norm")
-    parser.add_argument('--res_blocks', type=int, default=8, help='Number of residual blocks for th NN')
+    parser.add_argument('--num_res_blocks', type=int, default=8, help='Number of residual blocks for th NN')
     parser.add_argument('--expansions_per_move', type=int, default=200, help='Number of expansions per MCTS move')
     args = parser.parse_args()
 
