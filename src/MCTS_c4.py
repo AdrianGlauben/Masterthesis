@@ -219,6 +219,8 @@ def run_MCTS(args, start_idx=0, iteration=0):
             net.load_state_dict(checkpoint['state_dict'])
             logger.info("Loaded %s model." % current_net_filename)
         else:
+            if not os.path.isdir("./data/model_data/"):
+                os.mkdir("data/model_data")
             torch.save({'state_dict': net.state_dict()}, os.path.join("./data/model_data/",\
                         net_to_play))
             logger.info("Initialized model.")
