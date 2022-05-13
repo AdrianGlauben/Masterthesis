@@ -10,3 +10,4 @@
 /src/data/model_data/
 /src/__pycache__/*
 /src/training_history/
+/src/data/eval_positions

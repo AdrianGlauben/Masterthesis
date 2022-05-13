@@ -4,8 +4,11 @@ from alpha_net_c4 import ConnectNet
 from connect_board import board
 import torch
 
-def play_game(model_1, model_2, expansions_per_move=200):
+def play_game(model_1, model_2, expansions_per_move=200, pre_moves=None):
     current_board = board()
+    if pre_moves != None:
+        for move in pre_moves:
+            current_board.drop_piece(move)
     checkmate = False
     winner = None
     t = 0.1
@@ -29,25 +32,46 @@ def play_game(model_1, model_2, expansions_per_move=200):
     return winner
 
 
-def evaluate(model_1, model_2, expansions_per_move=200):
+def evaluate(model_1, model_2, expansions_per_move=200, use_pre_moves=True):
     stats_1 = [0, 0, 0]
     stats_2 = [0, 0, 0]
 
-    for i in range(50):
-        winner = play_game(model_1, model_2, expansions_per_move)
-        if winner is not None:
-            stats_1[winner] += 1
-        else:
-            stats_1[2] += 1
-        print(f'M1 / M2 ### Games played: {i+1} ### Current stats: {stats_1}')
+    if use_pre_moves:
+        with open('./data/eval_positions', 'rb') as pkl_file:
+            pre_moves = pickle.load(pkl_file)
 
-    for i in range(50):
-        winner = play_game(model_2, model_1, expansions_per_move)
-        if winner is not None:
-            stats_2[abs(winner-1)] += 1
-        else:
-            stats_2[2] += 1
-        print(f'M2 / M1 ### Games played: {i+1} ### Current Stats: {stats_2}')
+        for moves in pre_moves:
+            winner = play_game(model_1, model_2, expansions_per_move, moves)
+            if winner is not None:
+                stats_1[winner] += 1
+            else:
+                stats_1[2] += 1
+            print(f'M1 / M2 ### Games played: {i+1} ### Current stats: {stats_1}')
+
+        for moves in pre_moves:
+            winner = play_game(model_2, model_1, expansions_per_move, moves)
+            if winner is not None:
+                stats_2[abs(winner-1)] += 1
+            else:
+                stats_2[2] += 1
+            print(f'M2 / M1 ### Games played: {i+1} ### Current Stats: {stats_2}')
+
+    else:
+        for i in range(50):
+            winner = play_game(model_1, model_2, expansions_per_move)
+            if winner is not None:
+                stats_1[winner] += 1
+            else:
+                stats_1[2] += 1
+            print(f'M1 / M2 ### Games played: {i+1} ### Current stats: {stats_1}')
+
+        for i in range(50):
+            winner = play_game(model_2, model_1, expansions_per_move)
+            if winner is not None:
+                stats_2[abs(winner-1)] += 1
+            else:
+                stats_2[2] += 1
+            print(f'M2 / M1 ### Games played: {i+1} ### Current Stats: {stats_2}')
 
     return stats_1, stats_2
 

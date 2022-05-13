@@ -35,6 +35,8 @@ if __name__ == "__main__":
 
     rtpt = RTPT(name_initials="AG", experiment_name='C4', max_iterations=args.total_iterations)
 
+    rtpt.start()
+
     logger.info("Starting iteration pipeline...")
     for i in range(args.iteration, args.total_iterations):
         run_MCTS(args, start_idx=0, iteration=i)
