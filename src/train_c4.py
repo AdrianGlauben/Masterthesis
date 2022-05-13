@@ -164,7 +164,7 @@ def train_connectnet(args, iteration, new_optim_state):
     logger.info("Loaded data from %s." % data_path)
 
     # train net
-    net = ConnectNet()
+    net = ConnectNet(args.num_res_blocks)
     cuda = torch.cuda.is_available()
     if cuda:
         net.cuda()

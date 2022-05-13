@@ -151,7 +151,7 @@ def get_policy(root, temp=1):
     #    policy[idx] = ((root.child_number_visits[idx])**(1/temp))/sum(root.child_number_visits**(1/temp))
     return ((root.child_number_visits)**(1/temp))/sum(root.child_number_visits**(1/temp))
 
-def MCTS_self_play(connectnet, num_games, start_idx, cpu, args, iteration, expansions_per_move=200):
+def MCTS_self_play(connectnet, num_games, start_idx, cpu, args, iteration):
     logger.info("[CPU: %d]: Starting MCTS self-play..." % cpu)
 
     if not os.path.isdir("./data/datasets/iter_%d" % iteration):
@@ -174,7 +174,7 @@ def MCTS_self_play(connectnet, num_games, start_idx, cpu, args, iteration, expan
                 t = 0.1
             states.append(copy.deepcopy(current_board.current_board))
             board_state = copy.deepcopy(ed.encode_board(current_board))
-            root = UCT_search(current_board,expansions_per_move,connectnet,t)
+            root = UCT_search(current_board,args.expansions_per_move,connectnet,t)
             policy = get_policy(root, t); print("[CPU: %d]: Game %d POLICY:\n " % (cpu, idxx), policy)
             current_board = do_decode_n_move_pieces(current_board,\
                                                     np.random.choice(np.array([0,1,2,3,4,5,6]), \
@@ -201,7 +201,7 @@ def MCTS_self_play(connectnet, num_games, start_idx, cpu, args, iteration, expan
 
 def run_MCTS(args, start_idx=0, iteration=0):
     net_to_play="%s_iter%d.pth.tar" % (args.neural_net_name, iteration)
-    net = ConnectNet()
+    net = ConnectNet(args.num_res_blocks)
     cuda = torch.cuda.is_available()
     if cuda:
         net.cuda()

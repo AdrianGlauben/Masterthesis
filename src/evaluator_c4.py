@@ -105,8 +105,8 @@ def evaluate_nets(args, iteration_1, iteration_2) :
     logger.info("Current net: %s" % current_net)
     logger.info("Previous (Best) net: %s" % best_net)
 
-    current_cnet = ConnectNet()
-    best_cnet = ConnectNet()
+    current_cnet = ConnectNet(args.num_res_blocks)
+    best_cnet = ConnectNet(args.num_res_blocks)
     cuda = torch.cuda.is_available()
     if cuda:
         current_cnet.cuda()
@@ -135,7 +135,7 @@ def evaluate_nets(args, iteration_1, iteration_2) :
         logger.info("Spawning %d processes..." % num_processes)
         with torch.no_grad():
             for i in range(num_processes):
-                p = mp.Process(target=fork_process,args=(arena(current_cnet,best_cnet), args.num_evaluator_games, i))
+                p = mp.Process(target=fork_process,args=(arena(current_cnet,best_cnet, args.expansions_per_move), args.num_evaluator_games, i))
                 p.start()
                 processes.append(p)
             for p in processes:
@@ -157,7 +157,7 @@ def evaluate_nets(args, iteration_1, iteration_2) :
         current_cnet.load_state_dict(checkpoint['state_dict'])
         checkpoint = torch.load(best_net_filename)
         best_cnet.load_state_dict(checkpoint['state_dict'])
-        arena1 = arena(current_cnet=current_cnet, best_cnet=best_cnet)
+        arena1 = arena(current_cnet=current_cnet, best_cnet=best_cnet, args.expansions_per_move)
         arena1.evaluate(num_games=args.num_evaluator_games, cpu=0)
 
         stats = load_pickle("wins_cpu_%i" % (0))
