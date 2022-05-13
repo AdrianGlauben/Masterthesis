@@ -68,10 +68,10 @@ class UCTNode():
 
     def best_child(self):
         if self.action_idxes != []:
-            bestmove = self.child_Q() + self.child_U()
+            bestmove = self.child_Q() + 2.5 * self.child_U()
             bestmove = self.action_idxes[np.argmax(bestmove[self.action_idxes])]
         else:
-            bestmove = np.argmax(self.child_Q() + self.child_U())
+            bestmove = np.argmax(self.child_Q() + 2.5 *self.child_U())
         return bestmove
 
     def select_leaf(self):
@@ -168,7 +168,7 @@ def MCTS_self_play(connectnet, num_games, start_idx, cpu, args, iteration):
         value = 0
         move_count = 0
         while checkmate == False and current_board.actions() != []:
-            if move_count < 11:
+            if move_count < 40:
                 t = args.temperature_MCTS
             else:
                 t = 0.1

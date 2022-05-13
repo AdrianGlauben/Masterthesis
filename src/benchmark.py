@@ -11,7 +11,6 @@ def play_game(model_1, model_2, expansions_per_move=200, pre_moves=None):
     if pre_moves != None:
         for move in pre_moves:
             current_board.drop_piece(move)
-            t = 0.00001
     checkmate = False
     winner = None
 
@@ -79,10 +78,10 @@ def evaluate(model_1, model_2, expansions_per_move=200, use_pre_moves=True):
     return stats_1, stats_2
 
 
-MODEL_1_PATH = './training_history/run1/cc4_current_net__iter18.pth.tar'
-MODEL_2_PATH = './training_history/5i_w_replay_buffer/model_data/cc4_current_net__iter5.pth.tar'
+MODEL_1_PATH = './training_history/run2/cc4_current_net__iter2.pth.tar'
+MODEL_2_PATH = './training_history/5i_w_replay_buffer/model_data/cc4_current_net__iter4.pth.tar'
 
-model_1 = ConnectNet()
+model_1 = ConnectNet(12)
 model_2 = ConnectNet()
 
 checkpoint = torch.load(MODEL_1_PATH)
@@ -95,4 +94,4 @@ if torch.cuda.is_available():
     model_1.cuda()
     model_2.cuda()
 
-print(evaluate(model_1, model_2, 200, None))
+print(evaluate(model_1, model_2, 300, False))

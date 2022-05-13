@@ -17,7 +17,11 @@ while len(positions) < 50:
     if moves not in positions:
         positions.append(moves)
 
+positions.extend(positions)
+
 print(len(positions))
+print(positions[1])
+print(positions[51])
 
 # completeName = os.path.join("./data/",\
 #                             'eval_positions')

@@ -30,19 +30,23 @@ def load_pickle(filename):
         data = pickle.load(pkl_file)
     return data
 
+
 class arena():
     def __init__(self, current_cnet, best_cnet, expansions_per_move=200):
         self.current = current_cnet
         self.best = best_cnet
         self.expansions_per_move = expansions_per_move
 
-    def play_round(self):
+
+    def play_round(self, pre_moves, switch):
         logger.info("Starting game round...")
-        if np.random.uniform(0,1) <= 0.5:
+        if switch:
             white = self.current; black = self.best; w = "current"; b = "best"
         else:
             white = self.best; black = self.current; w = "best"; b = "current"
         current_board = cboard()
+        for move in pre_moves:
+            current_board.drop_piece(move)
         checkmate = False
         dataset = []
         value = 0; t = 0.1
@@ -75,12 +79,32 @@ class arena():
             dataset.append("Nobody wins")
             return None, dataset
 
+
+    def generate_random_starting_positions(self, num_games):
+        positions = []
+        while len(positions) < int(num_games/2):
+            current_board = cboard()
+            length = np.random.choice([1, 2, 3, 4])
+            moves = []
+            for i in range(length):
+                legal_moves = current_board.actions()
+                move = np.random.choice(legal_moves)
+                current_board.drop_piece(move)
+                moves.append(move)
+            if moves not in positions:
+                positions.append(moves)
+        positions.extend(positions)
+        return positions
+
+
     def evaluate(self, num_games, cpu):
         current_wins = 0
         logger.info("[CPU %d]: Starting games..." % cpu)
-        for i in range(num_games):
+        # Generate random starting starting positions
+        eval_positions = self.generate_random_starting_positions(num_games)
+        for i, moves in enumerate(eval_positions):
             with torch.no_grad():
-                winner, dataset = self.play_round(); print("%s wins!" % winner)
+                winner, dataset = self.play_round(moves, i > num_games/2); print("%s wins!" % winner)
             if winner == "current":
                 current_wins += 1
             print(f"CURRENT WIN RATIO: {current_wins} / {i+1}")
@@ -91,8 +115,10 @@ class arena():
                                              {"best_win_ratio": current_wins/num_games, "num_games":num_games})
         logger.info("[CPU %d]: Finished arena games!" % cpu)
 
+
 def fork_process(arena_obj, num_games, cpu): # make arena picklable
     arena_obj.evaluate(num_games, cpu)
+
 
 def evaluate_nets(args, iteration_1, iteration_2) :
     logger.info("Loading nets...")
