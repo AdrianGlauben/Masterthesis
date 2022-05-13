@@ -104,7 +104,7 @@ class arena():
         eval_positions = self.generate_random_starting_positions(num_games)
         for i, moves in enumerate(eval_positions):
             with torch.no_grad():
-                winner, dataset = self.play_round(moves, i > num_games/2); print("%s wins!" % winner)
+                winner, dataset = self.play_round(moves, i >= num_games/2); print("%s wins!" % winner)
             if winner == "current":
                 current_wins += 1
             print(f"CURRENT WIN RATIO: {current_wins} / {i+1}")
