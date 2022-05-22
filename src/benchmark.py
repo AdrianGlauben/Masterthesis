@@ -78,11 +78,11 @@ def evaluate(model_1, model_2, expansions_per_move=200, use_pre_moves=True):
     return stats_1, stats_2
 
 
-MODEL_1_PATH = './training_history/run2/cc4_current_net__iter2.pth.tar'
-MODEL_2_PATH = './training_history/5i_w_replay_buffer/model_data/cc4_current_net__iter4.pth.tar'
+MODEL_1_PATH = './training_history/run3/cc4_current_net__iter29.pth.tar'
+MODEL_2_PATH = './training_history/run3/cc4_current_net__iter10.pth.tar'
 
 model_1 = ConnectNet(12)
-model_2 = ConnectNet()
+model_2 = ConnectNet(12)
 
 checkpoint = torch.load(MODEL_1_PATH)
 model_1.load_state_dict(checkpoint['state_dict'])
@@ -94,4 +94,4 @@ if torch.cuda.is_available():
     model_1.cuda()
     model_2.cuda()
 
-print(evaluate(model_1, model_2, 300, False))
+print(evaluate(model_1, model_2, 300, True))

@@ -8,7 +8,7 @@ class board():
         self.init_board[self.init_board == "0.0"] = " "
         self.player = 0
         self.current_board = self.init_board
-        
+
     def drop_piece(self, column):
         if self.current_board[0, column] != " ":
             return "Invalid move"
@@ -26,7 +26,7 @@ class board():
             elif self.player == 1:
                 self.current_board[row-2, column] = "X"
                 self.player = 0
-    
+
     def check_winner(self):
         if self.player == 1:
             for row in range(6):
@@ -104,4 +104,3 @@ class board():
             if self.current_board[0, col] == " ":
                 acts.append(col)
         return acts
-            

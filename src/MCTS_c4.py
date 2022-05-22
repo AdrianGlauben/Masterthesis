@@ -31,6 +31,8 @@ def load_pickle(filename):
         data = pickle.load(pkl_file)
     return data
 
+
+
 class UCTNode():
     def __init__(self, game, move, parent=None):
         self.game = game # state s
@@ -43,43 +45,71 @@ class UCTNode():
         self.child_number_visits = np.zeros([7], dtype=np.float32)
         self.action_idxes = []
 
+
     @property
     def number_visits(self):
         return self.parent.child_number_visits[self.move]
+
 
     @number_visits.setter
     def number_visits(self, value):
         self.parent.child_number_visits[self.move] = value
 
+
     @property
     def total_value(self):
         return self.parent.child_total_value[self.move]
+
 
     @total_value.setter
     def total_value(self, value):
         self.parent.child_total_value[self.move] = value
 
+
     def child_Q(self):
         return self.child_total_value / (1 + self.child_number_visits)
+
 
     def child_U(self):
         return math.sqrt(self.number_visits) * (
             abs(self.child_priors) / (1 + self.child_number_visits))
 
+
     def best_child(self):
         if self.action_idxes != []:
-            bestmove = self.child_Q() + 2.5 * self.child_U()
+            bestmove = self.child_Q() + 1.5 * self.child_U()
             bestmove = self.action_idxes[np.argmax(bestmove[self.action_idxes])]
         else:
-            bestmove = np.argmax(self.child_Q() + 2.5 *self.child_U())
+            bestmove = np.argmax(self.child_Q() + 1.5 *self.child_U())
         return bestmove
 
-    def select_leaf(self):
+
+    def select_leaf(self, generate_data=False):
         current = self
+        data = []
         while current.is_expanded:
-          best_move = current.best_child()
-          current = current.maybe_add_child(best_move)
+            best_move = current.best_child()
+            if generate_data:
+                X = current.get_data()
+                data.extend(X)
+            current = current.maybe_add_child(best_move)
+        if generate_data:
+            return current, data
         return current
+
+
+    def get_data(self):
+        current = self
+        move_history = []
+        while current.move is not None:
+            move_history.append(current.move)
+            current = current.parent
+        move_history.reverse()
+        X = []
+        for i in range(7):
+            X.append([self.child_total_value[i], self.child_priors[i], self.child_number_visits[i], self.number_visits, move_history])
+        return X
+
 
     def add_dirichlet_noise(self,action_idxs,child_priors):
         valid_child_priors = child_priors[action_idxs] # select only legal moves entries in child_priors array
@@ -87,6 +117,7 @@ class UCTNode():
                                                                                           dtype=np.float32)+192)
         child_priors[action_idxs] = valid_child_priors
         return child_priors
+
 
     def expand(self, child_priors):
         self.is_expanded = True
@@ -99,9 +130,11 @@ class UCTNode():
             c_p = self.add_dirichlet_noise(action_idxs,c_p)
         self.child_priors = c_p
 
+
     def decode_n_move_pieces(self,board,move):
         board.drop_piece(move)
         return board
+
 
     def maybe_add_child(self, move):
         if move not in self.children:
@@ -111,9 +144,10 @@ class UCTNode():
               copy_board, move, parent=self)
         return self.children[move]
 
+
     def backup(self, value_estimate: float):
         current = self
-        while current.parent is not None:
+        while current.move is not None:
             current.number_visits += 1
             if current.game.player == 1: # same as current.parent.game.player = 0
                 current.total_value += (1*value_estimate) # value estimate +1 = O wins
@@ -121,16 +155,24 @@ class UCTNode():
                 current.total_value += (-1*value_estimate)
             current = current.parent
 
+
+
 class DummyNode(object):
     def __init__(self):
         self.parent = None
         self.child_total_value = collections.defaultdict(float)
         self.child_number_visits = collections.defaultdict(float)
 
-def UCT_search(game_state, num_reads,net,temp):
+
+def UCT_search(game_state, num_reads,net,temp,generate_data=False):
     root = UCTNode(game_state, move=None, parent=DummyNode())
+    dataset = []
     for i in range(num_reads):
-        leaf = root.select_leaf()
+        if generate_data:
+            leaf, data = root.select_leaf(generate_data)
+            dataset.extend(data)
+        else:
+            leaf = root.select_leaf()
         encoded_s = ed.encode_board(leaf.game); encoded_s = encoded_s.transpose(2,0,1)
         encoded_s = torch.from_numpy(encoded_s).float().cuda()
         child_priors, value_estimate = net(encoded_s)
@@ -139,17 +181,22 @@ def UCT_search(game_state, num_reads,net,temp):
             leaf.backup(value_estimate); continue
         leaf.expand(child_priors) # need to make sure valid moves
         leaf.backup(value_estimate)
+    if generate_data:
+        return root, dataset
     return root
+
 
 def do_decode_n_move_pieces(board,move):
     board.drop_piece(move)
     return board
+
 
 def get_policy(root, temp=1):
     #policy = np.zeros([7], dtype=np.float32)
     #for idx in np.where(root.child_number_visits!=0)[0]:
     #    policy[idx] = ((root.child_number_visits[idx])**(1/temp))/sum(root.child_number_visits**(1/temp))
     return ((root.child_number_visits)**(1/temp))/sum(root.child_number_visits**(1/temp))
+
 
 def MCTS_self_play(connectnet, num_games, start_idx, cpu, args, iteration):
     logger.info("[CPU: %d]: Starting MCTS self-play..." % cpu)
@@ -168,7 +215,7 @@ def MCTS_self_play(connectnet, num_games, start_idx, cpu, args, iteration):
         value = 0
         move_count = 0
         while checkmate == False and current_board.actions() != []:
-            if move_count < 40:
+            if move_count < 10:
                 t = args.temperature_MCTS
             else:
                 t = 0.1
@@ -198,6 +245,7 @@ def MCTS_self_play(connectnet, num_games, start_idx, cpu, args, iteration):
         del dataset
         save_as_pickle("iter_%d/" % iteration +\
                        "dataset_iter%d_cpu%i_%i_%s" % (iteration, cpu, idxx, datetime.datetime.today().strftime("%Y-%m-%d")), dataset_p)
+
 
 def run_MCTS(args, start_idx=0, iteration=0):
     net_to_play="%s_iter%d.pth.tar" % (args.neural_net_name, iteration)
