@@ -147,7 +147,7 @@ class UCTNode():
 
     def backup(self, value_estimate: float):
         current = self
-        while current.move is not None:
+        while current.parent is not None:
             current.number_visits += 1
             if current.game.player == 1: # same as current.parent.game.player = 0
                 current.total_value += (1*value_estimate) # value estimate +1 = O wins

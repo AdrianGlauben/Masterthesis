@@ -4,6 +4,15 @@ from connect_board import board
 import numpy as np
 import os
 
+completeName = os.path.join("./data/pm_data/",\
+                            'game_0')
+with open(completeName, 'rb') as pkl_file:
+    data = pickle.load(pkl_file)
+
+print(data[0][0:4])
+
+exit()
+
 positions = []
 while len(positions) < 50:
     current_board = board()
