@@ -29,7 +29,7 @@ def load_pickle(filename):
         data = pickle.load(pkl_file)
     return data
 
-def load_state(net, optimizer, scheduler, args, iteration, new_optim_state=True):
+def load_state(net, optimizer, args, iteration, new_optim_state=True):
     """ Loads saved model and optimizer states if exists """
     base_path = "./data/model_data/"
     checkpoint_path = os.path.join(base_path, "%s_iter%d.pth.tar" % (args.neural_net_name, iteration))
@@ -44,8 +44,7 @@ def load_state(net, optimizer, scheduler, args, iteration, new_optim_state=True)
             start_epoch = checkpoint['epoch']
             net.load_state_dict(checkpoint['state_dict'])
             optimizer.load_state_dict(checkpoint['optimizer'])
-            scheduler.load_state_dict(checkpoint['scheduler'])
-            logger.info("Loaded checkpoint model %s, and optimizer, scheduler." % checkpoint_path)
+            logger.info("Loaded checkpoint model %s, and optimizer." % checkpoint_path)
     return start_epoch
 
 def load_results(iteration):
@@ -58,7 +57,7 @@ def load_results(iteration):
         losses_per_epoch = []
     return losses_per_epoch
 
-def train(net, dataset, optimizer, scheduler, start_epoch, cpu, args, iteration):
+def train(net, dataset, optimizer, start_epoch, cpu, args, iteration):
     torch.manual_seed(cpu)
     cuda = torch.cuda.is_available()
     net.train()
@@ -101,7 +100,6 @@ def train(net, dataset, optimizer, scheduler, start_epoch, cpu, args, iteration)
                 print(" ")
                 total_loss = 0.0
 
-        scheduler.step()
         if len(losses_per_batch) >= 1:
             losses_per_epoch.append(sum(losses_per_batch)/len(losses_per_batch))
         if (epoch % 2) == 0:
@@ -110,7 +108,6 @@ def train(net, dataset, optimizer, scheduler, start_epoch, cpu, args, iteration)
                     'epoch': epoch + 1,\
                     'state_dict': net.state_dict(),\
                     'optimizer' : optimizer.state_dict(),\
-                    'scheduler' : scheduler.state_dict(),\
                 }, os.path.join("./data/model_data/",\
                     "%s_iter%d.pth.tar" % (args.neural_net_name, (iteration + 1))))
         '''
@@ -169,7 +166,6 @@ def train_connectnet(args, iteration, new_optim_state):
     if cuda:
         net.cuda()
     optimizer = optim.Adam(net.parameters(), lr=args.lr, betas=(0.8, 0.999))
-    scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[50,100,150,200,250,300,400], gamma=0.77)
-    start_epoch = load_state(net, optimizer, scheduler, args, iteration, new_optim_state)
+    start_epoch = load_state(net, optimizer, args, iteration, new_optim_state)
 
-    train(net, datasets, optimizer, scheduler, start_epoch, 0, args, iteration)
+    train(net, datasets, optimizer, start_epoch, 0, args, iteration)
