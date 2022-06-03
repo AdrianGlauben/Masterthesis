@@ -5,23 +5,24 @@ import numpy as np
 
 
 class SPMDataset(torch.utils.data.Dataset):
-    def __init__(self, dataset):
+    def __init__(self, dataset, c):
         self.dataset = dataset
+        self.c = c
 
     def __len__(self):
         return len(self.dataset)
 
     def __getitem__(self, idx):
-        data = dataset[idx]
-        X = np.array(data[0:4], dtype=np.int32)
+        data = self.dataset[idx]
+        X = np.array(data[0:4], dtype=np.float32)
         y_1 = data[0] / (1 + data[2])
         y_2 = np.sqrt(data[3]) * data[1] / (1 + data[2])
-        return X, np.array([y_1, y_2], dtype=np.int32)
+        return X, np.array([y_1 + self.c * y_2], dtype=np.float32)
 
 
 
 class SimplePM(nn.Module):
-    def __init__(self, input_size = 4, hidden_size = 64, output_size = 2):
+    def __init__(self, input_size = 4, hidden_size = 64, output_size = 1):
         super(SimplePM, self).__init__()
         self.input_size = input_size
         self.hidden_size = hidden_size

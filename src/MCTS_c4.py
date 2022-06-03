@@ -84,11 +84,25 @@ class UCTNode():
         return bestmove
 
 
-    def select_leaf(self, generate_data=False):
+    def pm_best_child(self, pm):
+        inputs = [[self.child_total_value[i], self.child_priors[i], self.child_number_visits[i], self.number_visits] for i in range(len(self.child_priors))]
+        inputs_tensor = torch.tensor(inputs, dtype=torch.float32)
+        if torch.cuda.is_available():
+            inputs_tensor = inputs_tensor.cuda()
+        values = pm(inputs_tensor)
+        values = values.detach().cpu()
+        if self.action_idxes != []:
+            bestmove = self.action_idxes[np.argmax(values[self.action_idxes])]
+        else:
+            bestmove = np.argmax(values)
+        return bestmove
+
+
+    def select_leaf(self, generate_data=False, pm=None):
         current = self
         data = []
         while current.is_expanded:
-            best_move = current.best_child()
+            best_move = current.best_child() if pm is None else current.pm_best_child(pm)
             if generate_data:
                 X = current.get_data()
                 data.extend(X)
@@ -164,7 +178,7 @@ class DummyNode(object):
         self.child_number_visits = collections.defaultdict(float)
 
 
-def UCT_search(game_state, num_reads,net,temp,generate_data=False):
+def UCT_search(game_state, num_reads,net,temp,generate_data=False,planning_model=None):
     root = UCTNode(game_state, move=None, parent=DummyNode())
     dataset = []
     for i in range(num_reads):
@@ -172,7 +186,7 @@ def UCT_search(game_state, num_reads,net,temp,generate_data=False):
             leaf, data = root.select_leaf(generate_data)
             dataset.extend(data)
         else:
-            leaf = root.select_leaf()
+            leaf = root.select_leaf(pm=planning_model)
         encoded_s = ed.encode_board(leaf.game); encoded_s = encoded_s.transpose(2,0,1)
         encoded_s = torch.from_numpy(encoded_s).float().cuda()
         child_priors, value_estimate = net(encoded_s)
@@ -215,7 +229,7 @@ def MCTS_self_play(connectnet, num_games, start_idx, cpu, args, iteration):
         value = 0
         move_count = 0
         while checkmate == False and current_board.actions() != []:
-            if move_count < 10:
+            if move_count < 11:
                 t = args.temperature_MCTS
             else:
                 t = 0.1
