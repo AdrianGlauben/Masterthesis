@@ -165,7 +165,7 @@ def train_connectnet(args, iteration, new_optim_state):
     cuda = torch.cuda.is_available()
     if cuda:
         net.cuda()
-    optimizer = optim.Adam(net.parameters(), lr=args.lr, betas=(0.8, 0.999))
+    optimizer = optim.Adam(net.parameters(), lr=args.lr, betas=(0.8, 0.999), weight_decay=1e-4)
     start_epoch = load_state(net, optimizer, args, iteration, new_optim_state)
 
     train(net, datasets, optimizer, start_epoch, 0, args, iteration)
