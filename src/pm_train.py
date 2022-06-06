@@ -8,20 +8,22 @@ import pickle
 from torch.utils.tensorboard import SummaryWriter
 from datetime import datetime
 
-data = []
+dataset = {'data': []}
 data_path = "./data/pm_data/game_data/"
 
 for idx,file in enumerate(os.listdir(data_path)):
     filename = os.path.join(data_path,file)
     with open(filename, 'rb') as fo:
         game_data = pickle.load(fo, encoding='bytes')
-        sampled_data = random.sample(game_data, k=6250)
-        data.extend(sampled_data)
+        dataset['expansions'] = game_data['expansions']
+        dataset['cpuct'] = game_data['cpuct']
+        sampled_data = random.sample(game_data['data'], k=6250)
+        dataset['data'].extend(sampled_data)
 
 random.Random(42).shuffle(data)
 split = int(0.8*len(data))
-train_set = SPMDataset(data[0:split], c=1.5)
-validation_set = SPMDataset(data[split:], c=1.5)
+train_set = SPMDataset(data[0:split])
+validation_set = SPMDataset(data[split:])
 
 train_loader = DataLoader(train_set, batch_size=32, shuffle=True)
 validation_loader = DataLoader(validation_set, batch_size=32, shuffle=True)

@@ -31,6 +31,7 @@ if __name__ == "__main__":
     parser.add_argument("--max_norm", type=float, default=1.0, help="Clipped gradient norm")
     parser.add_argument('--num_res_blocks', type=int, default=8, help='Number of residual blocks for th NN')
     parser.add_argument('--expansions_per_move', type=int, default=200, help='Number of expansions per MCTS move')
+    parser.add_argument('--cpuct', type=float, default=1.5, help='Exploration/Exploitation parameter')
     args = parser.parse_args()
 
     rtpt = RTPT(name_initials="AG", experiment_name='C4', max_iterations=args.total_iterations)

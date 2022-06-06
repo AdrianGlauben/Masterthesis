@@ -34,7 +34,7 @@ def load_pickle(filename):
 
 
 class UCTNode():
-    def __init__(self, game, move, parent=None):
+    def __init__(self, game, move, parent=None, c=1):
         self.game = game # state s
         self.move = move # action index
         self.is_expanded = False
@@ -44,6 +44,7 @@ class UCTNode():
         self.child_total_value = np.zeros([7], dtype=np.float32)
         self.child_number_visits = np.zeros([7], dtype=np.float32)
         self.action_idxes = []
+        self.c = c
 
 
     @property
@@ -77,10 +78,10 @@ class UCTNode():
 
     def best_child(self):
         if self.action_idxes != []:
-            bestmove = self.child_Q() + 1.5 * self.child_U()
+            bestmove = self.child_Q() + self.c * self.child_U()
             bestmove = self.action_idxes[np.argmax(bestmove[self.action_idxes])]
         else:
-            bestmove = np.argmax(self.child_Q() + 1.5 *self.child_U())
+            bestmove = np.argmax(self.child_Q() + self.c *self.child_U())
         return bestmove
 
 
@@ -120,8 +121,12 @@ class UCTNode():
             current = current.parent
         move_history.reverse()
         X = []
+        # Calc Q Variance
+        q = self.child_total_value / (1 + self.child_number_visits)
+        q_var = q.var()
+
         for i in range(7):
-            X.append([self.child_total_value[i], self.child_priors[i], self.child_number_visits[i], self.number_visits, move_history])
+            X.append([self.child_total_value[i], self.child_priors[i], self.child_number_visits[i], self.number_visits, move_history, q_var])
         return X
 
 
@@ -155,7 +160,7 @@ class UCTNode():
             copy_board = copy.deepcopy(self.game) # make copy of board
             copy_board = self.decode_n_move_pieces(copy_board,move)
             self.children[move] = UCTNode(
-              copy_board, move, parent=self)
+              copy_board, move, parent=self, c=self.c)
         return self.children[move]
 
 
@@ -178,8 +183,8 @@ class DummyNode(object):
         self.child_number_visits = collections.defaultdict(float)
 
 
-def UCT_search(game_state, num_reads,net,temp,generate_data=False,planning_model=None):
-    root = UCTNode(game_state, move=None, parent=DummyNode())
+def UCT_search(game_state, num_reads,net,temp,c=1,generate_data=False,planning_model=None):
+    root = UCTNode(game_state, move=None, parent=DummyNode(), c=c)
     dataset = []
     for i in range(num_reads):
         if generate_data:
@@ -235,7 +240,7 @@ def MCTS_self_play(connectnet, num_games, start_idx, cpu, args, iteration):
                 t = 0.1
             states.append(copy.deepcopy(current_board.current_board))
             board_state = copy.deepcopy(ed.encode_board(current_board))
-            root = UCT_search(current_board,args.expansions_per_move,connectnet,t)
+            root = UCT_search(current_board,args.expansions_per_move,connectnet,t, c=args.cpuct)
             policy = get_policy(root, t); print("[CPU: %d]: Game %d POLICY:\n " % (cpu, idxx), policy)
             current_board = do_decode_n_move_pieces(current_board,\
                                                     np.random.choice(np.array([0,1,2,3,4,5,6]), \
