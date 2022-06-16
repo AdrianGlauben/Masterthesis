@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import numpy as np
 from connect_board import board
 from encoder_decoder_c4 import encode_board
@@ -7,9 +8,9 @@ from encoder_decoder_c4 import encode_board
 
 
 class SPMDataset(torch.utils.data.Dataset):
-    def __init__(self, dataset):
-        self.dataset = dataset['data']
-        self.c = dataset['cpuct']
+    def __init__(self, dataset, c):
+        self.dataset = dataset
+        self.c = c
 
     def __len__(self):
         return len(self.dataset)
@@ -43,11 +44,11 @@ class SimplePM(nn.Module):
 
 
 
-class ConvPMDataset(torch.utils.data.Datset):
-    def __init__(self, dataset, mh_size=4):
-        self.dataset = dataset['data']
-        self.c = dataset['cpuct']
-        self.expansions = dataset['expansions']
+class ConvPMDataset(torch.utils.data.Dataset):
+    def __init__(self, dataset, c, expansions, mh_size=4):
+        self.dataset = dataset
+        self.c = c
+        self.expansions = expansions
         self.mh_size = mh_size
 
 
@@ -90,4 +91,72 @@ class ConvPMDataset(torch.utils.data.Datset):
 
 
 
+class ConvBlock(nn.Module):
+    def __init__(self, mh_size):
+        super(ConvBlock, self).__init__()
+        self.conv1 = nn.Conv2d(4 + 3 * mh_size, 128, 3, stride=1, padding=1)
+        self.bn1 = nn.BatchNorm2d(128)
+        self.mh_size = mh_size
+
+    def forward(self, s):
+        s = s.view(-1, 4+3*self.mh_size, 6, 7)  # batch_size x channels x board_x x board_y
+        s = F.relu(self.bn1(self.conv1(s)))
+        return s
+
+
+
+class ResBlock(nn.Module):
+    def __init__(self, inplanes=128, planes=128, stride=1, downsample=None):
+        super(ResBlock, self).__init__()
+        self.conv1 = nn.Conv2d(inplanes, planes, kernel_size=3, stride=stride,
+                     padding=1, bias=False)
+        self.bn1 = nn.BatchNorm2d(planes)
+        self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=stride,
+                     padding=1, bias=False)
+        self.bn2 = nn.BatchNorm2d(planes)
+
+    def forward(self, x):
+        residual = x
+        out = self.conv1(x)
+        out = F.relu(self.bn1(out))
+        out = self.conv2(out)
+        out = self.bn2(out)
+        out += residual
+        out = F.relu(out)
+        return out
+
+
+
+class OutBlock(nn.Module):
+    def __init__(self, mh_size):
+        super(OutBlock, self).__init__()
+        self.conv = nn.Conv2d(128, 3, kernel_size=1) # value head
+        self.bn = nn.BatchNorm2d(3)
+        self.fc1 = nn.Linear(3*6*7, 32)
+        self.fc2 = nn.Linear(32, 1)
+        self.mh_size = mh_size
+
+    def forward(self,s):
+        v = F.relu(self.bn(self.conv(s))) # value head
+        v = v.view(-1, 3*6*7)  # batch_size X channel X height X width
+        v = F.relu(self.fc1(v))
+        v = self.fc2(v)
+        return v
+
+
+
 class ConvPM(nn.Module):
+    def __init__(self, num_res_blocks=2, mh_size=4):
+        super(ConvPM, self).__init__()
+        self.conv = ConvBlock(mh_size)
+        for block in range(num_res_blocks):
+            setattr(self, "res_%i" % block,ResBlock())
+        self.outblock = OutBlock(mh_size)
+        self.num_res_blocks = num_res_blocks
+
+    def forward(self,s):
+        s = self.conv(s)
+        for block in range(self.num_res_blocks):
+            s = getattr(self, "res_%i" % block)(s)
+        s = self.outblock(s)
+        return s

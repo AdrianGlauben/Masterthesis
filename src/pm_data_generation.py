@@ -43,7 +43,7 @@ def play_game(model, expansions_per_move=200, c=1.5):
 
 
 MODEL_PATH = './training_history/run2/cc4_current_net__iter74.pth.tar'
-NUM_GAMES = 3
+NUM_GAMES = 100
 
 model = ConnectNet(12)
 
@@ -58,7 +58,7 @@ if not os.path.isdir("data/pm_data/game_data"):
 
 for i in range(NUM_GAMES):
     print(f'Game No. {i+1}')
-    winner, dataset = play_game(model, expansions_per_move=200)
+    winner, dataset = play_game(model, expansions_per_move=200, c=1.5)
 
     completeName = os.path.join("./data/pm_data/game_data/",\
                                 f'game_{i}')

@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
-from pm_net import SPMDataset, SimplePM
+from pm_net import SPMDataset, SimplePM, ConvPMDataset, ConvPM
 import random
 import os
 import pickle
@@ -20,15 +20,29 @@ for idx,file in enumerate(os.listdir(data_path)):
         sampled_data = random.sample(game_data['data'], k=6250)
         dataset['data'].extend(sampled_data)
 
-random.Random(42).shuffle(data)
-split = int(0.8*len(data))
-train_set = SPMDataset(data[0:split])
-validation_set = SPMDataset(data[split:])
+split = int(0.8*len(dataset['data']))
+train_data = dataset['data'][:split]
+validation_data = dataset['data'][split:]
+
+################################################
+#### Chose one by commenting the others out ####
+################################################
+
+####               Simple PM                ####
+# train_set = SPMDataset(train_data, dataset['cpuct'])
+# validation_set = SPMDataset(validation_data, dataset['cpuct'])
+# model = SimplePM()
+
+####                Conv PM                 ####
+train_set = ConvPMDataset(train_data, dataset['cpuct'], dataset['expansions'])
+validation_set = ConvPMDataset(validation_data, dataset['cpuct'], dataset['expansions'])
+model = ConvPM()
+
+#################################################
 
 train_loader = DataLoader(train_set, batch_size=32, shuffle=True)
 validation_loader = DataLoader(validation_set, batch_size=32, shuffle=True)
 
-model = SimplePM()
 if torch.cuda.is_available():
     model.cuda()
 
@@ -98,7 +112,7 @@ for epoch in range(EPOCHS):
             vlabels = vlabels.cuda()
         voutputs = model(vinputs)
         vloss = loss_fn(voutputs, vlabels)
-        running_vloss += vloss
+        running_vloss += vloss.item()
 
     avg_vloss = running_vloss / (i + 1)
     print('LOSS train {} valid {}'.format(avg_loss, avg_vloss))
