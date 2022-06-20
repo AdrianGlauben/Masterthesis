@@ -43,6 +43,8 @@ class UCTNode():
         self.child_priors = np.zeros([7], dtype=np.float32)
         self.child_total_value = np.zeros([7], dtype=np.float32)
         self.child_number_visits = np.zeros([7], dtype=np.float32)
+        self.child_q_mean = np.zeros([7], dtype=np.float32)
+        self.child_q_m2 = np.zeros([7], dtype=np.float32)
         self.action_idxes = []
         self.c = c
 
@@ -65,6 +67,26 @@ class UCTNode():
     @total_value.setter
     def total_value(self, value):
         self.parent.child_total_value[self.move] = value
+
+
+    @property
+    def q_mean(self):
+        return self.parent.child_q_mean[self.move]
+
+
+    @q_mean.setter
+    def q_mean(self, value):
+        self.parent.child_q_mean[self.move] = value
+
+
+    @property
+    def q_m2(self):
+        return self.parent.child_q_m2[self.move]
+
+
+    @q_m2.setter
+    def q_m2(self, value):
+        self.parent.child_q_m2[self.move] = value
 
 
     def child_Q(self):
@@ -121,7 +143,8 @@ class UCTNode():
             current = current.parent
         move_history.reverse()
         X = []
-        X.append([copy.deepcopy(self.child_total_value), copy.deepcopy(self.child_priors), copy.deepcopy(self.child_number_visits), [copy.deepcopy(self.number_visits)], move_history, copy.deepcopy(self.game.player)])
+        q_var = np.array([0 if self.child_number_visits[i] == 0 else self.child_q_m2[i]/self.child_number_visits[i] for i in range(7)], dtype=np.float32)
+        X.append([copy.deepcopy(self.child_total_value), copy.deepcopy(self.child_priors), copy.deepcopy(self.child_number_visits), [copy.deepcopy(self.number_visits)], move_history, copy.deepcopy(q_var), copy.deepcopy(self.game.player)])
         return X
 
 
@@ -163,10 +186,20 @@ class UCTNode():
         current = self
         while current.parent is not None:
             current.number_visits += 1
+            old_q_mean = copy.deepcopy(current.q_mean)
+            q_m2 = copy.deepcopy(current.q_m2)
+            n = copy.deepcopy(current.number_visits)
             if current.game.player == 1: # same as current.parent.game.player = 0
                 current.total_value += (1*value_estimate) # value estimate +1 = O wins
+                q_mean = old_q_mean + (value_estimate - old_q_mean) / n
+                q_m2 += (value_estimate - old_q_mean) * (value_estimate - q_mean)
             elif current.game.player == 0: # same as current.parent.game.player = 1
                 current.total_value += (-1*value_estimate)
+                q_mean = old_q_mean + (-1*value_estimate - old_q_mean) / n
+                q_m2 += (-1*value_estimate - old_q_mean) * (-1*value_estimate - q_mean)
+
+            current.q_mean = q_mean
+            current.q_m2 = q_m2
             current = current.parent
 
 
@@ -176,6 +209,8 @@ class DummyNode(object):
         self.parent = None
         self.child_total_value = collections.defaultdict(float)
         self.child_number_visits = collections.defaultdict(float)
+        self.child_q_mean = collections.defaultdict(float)
+        self.child_q_m2 = collections.defaultdict(float)
 
 
 def UCT_search(game_state, num_reads,net,temp,c=1,generate_data=False,planning_model=None):

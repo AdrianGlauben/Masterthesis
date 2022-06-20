@@ -30,14 +30,14 @@ validation_data = dataset['data'][split:]
 ################################################
 
 ####               Simple PM                ####
-train_set = SPMDataset(train_data, dataset['cpuct'])
-validation_set = SPMDataset(validation_data, dataset['cpuct'])
-model = SimplePM()
+# train_set = SPMDataset(train_data, dataset['cpuct'])
+# validation_set = SPMDataset(validation_data, dataset['cpuct'])
+# model = SimplePM()
 
 ####                Conv PM                 ####
-# train_set = ConvPMDataset(train_data, dataset['cpuct'], dataset['expansions'])
-# validation_set = ConvPMDataset(validation_data, dataset['cpuct'], dataset['expansions'])
-# model = ConvPM()
+train_set = ConvPMDataset(train_data, dataset['cpuct'], dataset['expansions'])
+validation_set = ConvPMDataset(validation_data, dataset['cpuct'], dataset['expansions'])
+model = ConvPM()
 
 #################################################
 

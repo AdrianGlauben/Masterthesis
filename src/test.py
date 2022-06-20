@@ -9,6 +9,20 @@ from copy import deepcopy
 from pm_net import ConvPM, ConvPMDataset
 import torch
 
+values = [-0.085, 0.07, 0.056, -0.005, -0.023, 0.012, 0.036, -0.056, -0.8, -0.9, -0.85]
+v_mean = 0
+v_m2 = 0
+n = 0
+for v in values:
+    n += 1
+    v_mean_old = v_mean
+    v_mean += (v - v_mean)/n
+    v_m2 += (v - v_mean_old) * (v - v_mean)
+
+print(v_m2/n)
+print(np.var([]))
+exit()
+
 dataset = {'data': []}
 data_path = "./data/pm_data/game_data/"
 

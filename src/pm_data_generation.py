@@ -59,6 +59,8 @@ if not os.path.isdir("data/pm_data/game_data"):
 for i in range(NUM_GAMES):
     print(f'Game No. {i+1}')
     winner, dataset = play_game(model, expansions_per_move=200, c=1.5)
+    print(dataset['data'][0])
+    exit()
 
     completeName = os.path.join("./data/pm_data/game_data/",\
                                 f'game_{i}')
