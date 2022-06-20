@@ -52,36 +52,40 @@ class SimplePM(nn.Module):
         self.hidden_size = hidden_size
         self.output_size = output_size
         self.fc1 = nn.Linear(input_size, self.hidden_size)
+        self.fc2 = nn.Linear(self.hidden_size, self.hidden_size)
+        self.fc3 = nn.Linear(self.hidden_size, self.output_size)
         self.relu = nn.ReLU()
-        self.fc2 = nn.Linear(self.hidden_size, self.output_size)
-        self.logsoftmax = nn.LogSoftmax(dim=1)
 
 
     def forward(self, x):
         x = self.fc1(x)
         x = self.relu(x)
         x = self.fc2(x)
+        x = self.relu(x)
+        x = self.fc3(x)
         return x
 
 
 
 class SimplePM_QVar(nn.Module):
-    def __init__(self, input_size = 7*4+1, hidden_size = 64, output_size = 7):
+    def __init__(self, input_size = 7*4+1, hidden_size = 128, output_size = 7):
         super(SimplePM, self).__init__()
         self.id = 'SPM_QVar'
         self.input_size = input_size
         self.hidden_size = hidden_size
         self.output_size = output_size
         self.fc1 = nn.Linear(input_size, self.hidden_size)
+        self.fc2 = nn.Linear(self.hidden_size, self.hidden_size)
+        self.fc3 = nn.Linear(self.hidden_size, self.output_size)
         self.relu = nn.ReLU()
-        self.fc2 = nn.Linear(self.hidden_size, self.output_size)
-        self.logsoftmax = nn.LogSoftmax(dim=1)
 
 
     def forward(self, x):
         x = self.fc1(x)
         x = self.relu(x)
         x = self.fc2(x)
+        x = self.relu(x)
+        x = self.fc3(x)
         return x
 
 

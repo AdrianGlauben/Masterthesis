@@ -17,7 +17,6 @@ for idx,file in enumerate(os.listdir(data_path)):
         game_data = pickle.load(fo, encoding='bytes')
         dataset['expansions'] = game_data['expansions']
         dataset['cpuct'] = game_data['cpuct']
-        #sampled_data = random.sample(game_data['data'], k=6250)
         dataset['data'].extend(game_data['data'])
 
 dataset['data'] = random.sample(dataset['data'], k=625000)
