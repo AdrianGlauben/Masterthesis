@@ -121,12 +121,7 @@ class UCTNode():
             current = current.parent
         move_history.reverse()
         X = []
-        # Calc Q Variance
-        q = self.child_total_value / (1 + self.child_number_visits)
-        q_var = q.var()
-
-        for i in range(7):
-            X.append([self.child_total_value[i], self.child_priors[i], self.child_number_visits[i], self.number_visits, move_history, q_var])
+        X.append([copy.deepcopy(self.child_total_value), copy.deepcopy(self.child_priors), copy.deepcopy(self.child_number_visits), [copy.deepcopy(self.number_visits)], move_history, copy.deepcopy(self.game.player)])
         return X
 
 

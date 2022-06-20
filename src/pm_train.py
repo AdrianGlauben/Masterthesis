@@ -17,9 +17,10 @@ for idx,file in enumerate(os.listdir(data_path)):
         game_data = pickle.load(fo, encoding='bytes')
         dataset['expansions'] = game_data['expansions']
         dataset['cpuct'] = game_data['cpuct']
-        sampled_data = random.sample(game_data['data'], k=6250)
-        dataset['data'].extend(sampled_data)
+        #sampled_data = random.sample(game_data['data'], k=6250)
+        dataset['data'].extend(game_data['data'])
 
+dataset['data'] = random.sample(dataset['data'], k=625000)
 split = int(0.8*len(dataset['data']))
 train_data = dataset['data'][:split]
 validation_data = dataset['data'][split:]
@@ -29,14 +30,14 @@ validation_data = dataset['data'][split:]
 ################################################
 
 ####               Simple PM                ####
-# train_set = SPMDataset(train_data, dataset['cpuct'])
-# validation_set = SPMDataset(validation_data, dataset['cpuct'])
-# model = SimplePM()
+train_set = SPMDataset(train_data, dataset['cpuct'])
+validation_set = SPMDataset(validation_data, dataset['cpuct'])
+model = SimplePM()
 
 ####                Conv PM                 ####
-train_set = ConvPMDataset(train_data, dataset['cpuct'], dataset['expansions'])
-validation_set = ConvPMDataset(validation_data, dataset['cpuct'], dataset['expansions'])
-model = ConvPM()
+# train_set = ConvPMDataset(train_data, dataset['cpuct'], dataset['expansions'])
+# validation_set = ConvPMDataset(validation_data, dataset['cpuct'], dataset['expansions'])
+# model = ConvPM()
 
 #################################################
 
@@ -46,7 +47,7 @@ validation_loader = DataLoader(validation_set, batch_size=32, shuffle=True)
 if torch.cuda.is_available():
     model.cuda()
 
-loss_fn = torch.nn.MSELoss()
+loss_fn = torch.nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
 
 
@@ -90,7 +91,7 @@ timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
 writer = SummaryWriter('./data/tb_logs/SimplePM_trainer_{}'.format(timestamp))
 epoch_number = 0
 
-EPOCHS = 60
+EPOCHS = 30
 
 best_vloss = 1_000_000.
 

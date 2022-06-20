@@ -19,14 +19,10 @@ for idx,file in enumerate(os.listdir(data_path)):
         dataset['expansions'] = game_data['expansions']
         dataset['cpuct'] = game_data['cpuct']
         dataset['data'].extend(game_data['data'])
+    break
 
-print(len(dataset['data']))
-exit()
-
-convpm_dataset = ConvPMDataset(dataset)
+convpm_dataset = ConvPMDataset(dataset['data'], dataset['cpuct'], dataset['expansions'])
 net = ConvPM()
 X, y = convpm_dataset[-1]
-print(X)
-print(X.shape)
 input_tensor = torch.tensor(X)
 print(net(input_tensor))

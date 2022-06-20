@@ -17,15 +17,16 @@ class SPMDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
         data = self.dataset[idx]
-        X = np.array(data[0:4], dtype=np.float32)
+        X = np.concatenate(data[0:4], dtype=np.float32)
         y_1 = data[0] / (1 + data[2])
         y_2 = np.sqrt(data[3]) * data[1] / (1 + data[2])
-        return X, np.array([y_1 + self.c * y_2], dtype=np.float32)
+        puct = y_1 + self.c * y_2
+        return X, np.argmax(puct)
 
 
 
 class SimplePM(nn.Module):
-    def __init__(self, input_size = 4, hidden_size = 64, output_size = 1):
+    def __init__(self, input_size = 7*3+1, hidden_size = 64, output_size = 7):
         super(SimplePM, self).__init__()
         self.id = 'SPM'
         self.input_size = input_size
@@ -34,6 +35,7 @@ class SimplePM(nn.Module):
         self.fc1 = nn.Linear(input_size, self.hidden_size)
         self.relu = nn.ReLU()
         self.fc2 = nn.Linear(self.hidden_size, self.output_size)
+        self.logsoftmax = nn.LogSoftmax(dim=1)
 
 
     def forward(self, x):
@@ -72,34 +74,45 @@ class ConvPMDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
         data = self.dataset[idx]
-        X = np.zeros([4 + 3 * self.mh_size,6,7], dtype=np.float32)
+        X = np.zeros([22 + 3 * self.mh_size,6,7], dtype=np.float32)
 
-        # 4 Planes for standard PUCT inputs
-        X[0] += data[0] / self.expansions   # Normalized Total Child Value
-        X[1] += data[1]                     # Child Prior
-        X[2] += data[2] / self.expansions   # Normalized Child Visits
-        X[3] += data[3] / self.expansions   # Normalized Parent Visists
+        # 22 Planes for standard PUCT inputs
+        plane_idx = 0
+        for d in data[0]:
+            X[plane_idx] += d / self.expansions   # Normalized Total Child Value
+            plane_idx += 1
+
+        for d in data[1]:
+            X[plane_idx] += d                    # Child Prior
+            plane_idx += 1
+
+        for d in data[2]:
+            X[plane_idx] += d / self.expansions
+            plane_idx += 1
+
+        X[plane_idx] += data[3][0] / self.expansions   # Normalized Parent Visists
 
         # mh_size * 3 Planes for Move History
         positions = self._get_move_history_representation(data[4])
         for i, pos in enumerate(positions):
-            X[4+i] += pos
+            X[22+i] += pos
 
         y_1 = data[0] / (1 + data[2])
         y_2 = np.sqrt(data[3]) * data[1] / (1 + data[2])
-        return X, np.array([y_1 + self.c * y_2], dtype=np.float32)
+        puct = y_1 + self.c * y_2
+        return X, np.argmax(puct)
 
 
 
 class ConvBlock(nn.Module):
     def __init__(self, mh_size):
         super(ConvBlock, self).__init__()
-        self.conv1 = nn.Conv2d(4 + 3 * mh_size, 128, 3, stride=1, padding=1)
+        self.conv1 = nn.Conv2d(22 + 3 * mh_size, 128, 3, stride=1, padding=1)
         self.bn1 = nn.BatchNorm2d(128)
         self.mh_size = mh_size
 
     def forward(self, s):
-        s = s.view(-1, 4+3*self.mh_size, 6, 7)  # batch_size x channels x board_x x board_y
+        s = s.view(-1, 22+3*self.mh_size, 6, 7)  # batch_size x channels x board_x x board_y
         s = F.relu(self.bn1(self.conv1(s)))
         return s
 
@@ -133,7 +146,7 @@ class OutBlock(nn.Module):
         self.conv = nn.Conv2d(128, 3, kernel_size=1) # value head
         self.bn = nn.BatchNorm2d(3)
         self.fc1 = nn.Linear(3*6*7, 32)
-        self.fc2 = nn.Linear(32, 1)
+        self.fc2 = nn.Linear(32, 7)
         self.mh_size = mh_size
 
     def forward(self,s):
