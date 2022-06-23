@@ -108,16 +108,18 @@ class UCTNode():
 
 
     def pm_best_child(self, pm, expansions, move_history):
+        action_mask = np.zeros([7], dtype=np.float32)
+        action_mask[self.action_idxes] += 1
         # Generate input
         if pm.id == "SPM_base":
-            inputs = np.concatenate([self.child_total_value, self.child_priors, self.child_number_visits, [self.number_visits]], dtype=np.float32)
+            inputs = np.concatenate([self.child_total_value, self.child_priors, self.child_number_visits, [self.number_visits], action_mask], dtype=np.float32)
 
         elif pm.id == "SPM_QVar":
             q_var = np.array([0 if self.child_number_visits[i] == 0 else self.child_q_m2[i]/self.child_number_visits[i] for i in range(7)], dtype=np.float32)
-            inputs = np.concatenate([self.child_total_value, self.child_priors, self.child_number_visits, [self.number_visits], q_var], dtype=np.float32)
+            inputs = np.concatenate([self.child_total_value, self.child_priors, self.child_number_visits, [self.number_visits], q_var, action_mask], dtype=np.float32)
 
         elif pm.id == "ConvPM_base":
-            inputs = np.zeros([22,6,7], dtype=np.float32)
+            inputs = np.zeros([29,6,7], dtype=np.float32)
             # 22 Planes for standard PUCT inputs
             plane_idx = 0
             for d in self.child_total_value:
@@ -133,9 +135,14 @@ class UCTNode():
                 plane_idx += 1
 
             inputs[plane_idx] += self.number_visits / expansions   # Normalized Parent Visists
+            plane_idx += 1
+
+            for d in action_mask:
+                inputs[plane_idx] += d
+                plane_idx += 1
 
         elif pm.id == "ConvPM_QVar":
-            inputs = np.zeros([29,6,7], dtype=np.float32)
+            inputs = np.zeros([36,6,7], dtype=np.float32)
 
             # 22 Planes for standard PUCT inputs
             plane_idx = 0
@@ -160,8 +167,12 @@ class UCTNode():
                 inputs[plane_idx] += d
                 plane_idx += 1
 
+            for d in action_mask:
+                inputs[plane_idx] += d
+                plane_idx += 1
+
         elif pm.id == "ConvPM_MH":
-            inputs = np.zeros([34,6,7], dtype=np.float32)
+            inputs = np.zeros([41,6,7], dtype=np.float32)
 
             # 22 Planes for standard PUCT inputs
             plane_idx = 0
@@ -197,8 +208,11 @@ class UCTNode():
                     inputs[plane_idx] += d
                     plane_idx += 1
 
+            for i, d in enumerate(action_mask):
+                inputs[34+i] += d
+
         elif pm.id == "ConvPM_All":
-            inputs = np.zeros([41,6,7], dtype=np.float32)
+            inputs = np.zeros([48,6,7], dtype=np.float32)
 
             # 22 Planes for standard PUCT inputs
             plane_idx = 0
@@ -238,6 +252,9 @@ class UCTNode():
             for i, d in enumerate(q_var):
                 inputs[34+i] += d
 
+            for i, d in enumerate(action_mask):
+                inputs[41+i] += d
+
 
         inputs_tensor = torch.tensor(inputs, dtype=torch.float32)
         if torch.cuda.is_available():
@@ -258,7 +275,7 @@ class UCTNode():
         while current.is_expanded:
             best_move = current.best_child() if pm is None else current.pm_best_child(pm, expansions, move_history)
             if generate_data:
-                X = current.get_data()
+                X = current.get_data(best_move)
                 data.extend(X)
             current = current.maybe_add_child(best_move)
         if generate_data:
@@ -266,17 +283,19 @@ class UCTNode():
         return current
 
 
-    def get_data(self):
+    def get_data(self, best_move):
         current = self
         move_history = []
         while current.move is not None:
             move_history.append(current.move)
             current = current.parent
         move_history.reverse()
-        X = []
+        # Action Mask
+        action_mask = np.zeros([7], dtype=np.float32)
+        action_mask[self.action_idxes] += 1
+        # Q value variance
         q_var = np.array([0 if self.child_number_visits[i] == 0 else self.child_q_m2[i]/self.child_number_visits[i] for i in range(7)], dtype=np.float32)
-        X.append([copy.deepcopy(self.child_total_value), copy.deepcopy(self.child_priors), copy.deepcopy(self.child_number_visits), [copy.deepcopy(self.number_visits)], move_history, copy.deepcopy(q_var), copy.deepcopy(self.game.player)])
-        return X
+        return [copy.deepcopy(self.child_total_value), copy.deepcopy(self.child_priors), copy.deepcopy(self.child_number_visits), [copy.deepcopy(self.number_visits)], move_history, copy.deepcopy(q_var), action_mask, copy.deepcopy(self.game.player), best_move]
 
 
     def add_dirichlet_noise(self,action_idxs,child_priors):
