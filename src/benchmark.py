@@ -1,28 +1,32 @@
 import numpy as np
 from MCTS_c4 import UCT_search, do_decode_n_move_pieces, get_policy
 from alpha_net_c4 import ConnectNet
-from pm_net import SimplePM
+from pm_net import SimplePM, SimplePM_QVar, ConvPM, ConvPM_QVar, ConvPM_MH, ConvPM_All
 from connect_board import board
+from encoder_decoder_c4 import encode_board
 import torch
 import pickle
 
 def play_game(model_1, model_2, expansions_per_move=200, c=1.5, pre_moves=None, pm_1=None, pm_2=None):
     current_board = board()
     t = 0.1
+    move_history = []
     if pre_moves != None:
         for move in pre_moves:
             current_board.drop_piece(move)
+            move_history.append(encode_board(current_board).transpose(2, 0, 1))
     checkmate = False
     winner = None
 
     while checkmate == False and current_board.actions() != []:
         if current_board.player == 0:
-            root = UCT_search(current_board,expansions_per_move,model_1,t,c=c,planning_model=pm_1)
+            root = UCT_search(current_board,expansions_per_move,model_1,t,c=c,planning_model=pm_1, move_history=move_history)
             policy = get_policy(root)
         elif current_board.player == 1:
-            root = UCT_search(current_board,expansions_per_move,model_2,t,c=c,planning_model=pm_2)
+            root = UCT_search(current_board,expansions_per_move,model_2,t,c=c,planning_model=pm_2, move_history=move_history)
             policy = get_policy(root)
         current_board = do_decode_n_move_pieces(current_board,np.argmax(policy)) # decode move and move piece(s)
+        move_history.append(encode_board(current_board).transpose(2, 0, 1))
         if current_board.check_winner() == True: # someone wins
             if current_board.player == 0: # Model 2 wins
                 winner = 1
@@ -85,7 +89,7 @@ PM_MODEL_1_PATH = './data/pm_data/SimplePM_run2_59'
 model_1 = ConnectNet(12)
 model_2 = ConnectNet(12)
 
-pm_model_1 = SimplePM()
+pm_model_1 = ConvPM_All()
 
 checkpoint = torch.load(MODEL_1_PATH)
 model_1.load_state_dict(checkpoint['state_dict'])
@@ -93,11 +97,11 @@ model_1.load_state_dict(checkpoint['state_dict'])
 checkpoint = torch.load(MODEL_2_PATH)
 model_2.load_state_dict(checkpoint['state_dict'])
 
-pm_model_1.load_state_dict(torch.load(PM_MODEL_1_PATH))
+#pm_model_1.load_state_dict(torch.load(PM_MODEL_1_PATH))
 
 if torch.cuda.is_available():
     model_1.cuda()
     model_2.cuda()
     pm_model_1.cuda()
 
-print(evaluate(model_1, model_2, 200, 1.5, True, pm_1=None, pm_2=None))
+print(evaluate(model_1, model_2, 200, 1.5, True, pm_1=None, pm_2=pm_model_1))

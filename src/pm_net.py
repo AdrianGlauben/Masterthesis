@@ -69,7 +69,7 @@ class SimplePM(nn.Module):
 
 class SimplePM_QVar(nn.Module):
     def __init__(self, input_size = 7*4+1, hidden_size = 128, output_size = 7):
-        super(SimplePM, self).__init__()
+        super(SimplePM_QVar, self).__init__()
         self.id = 'SPM_QVar'
         self.input_size = input_size
         self.hidden_size = hidden_size
@@ -282,9 +282,8 @@ class ConvPMDataset_All(torch.utils.data.Dataset):
             plane_idx += 1
 
         # 7 Planes for Q-Variance
-        for d in data[5]:
-            X[plane_idx] += d
-            plane_idx += 1
+        for i, d in enumerate(data[5]):
+            X[34 + i] += d
 
         y_1 = data[0] / (1 + data[2])
         y_2 = np.sqrt(data[3]) * data[1] / (1 + data[2])
@@ -367,8 +366,8 @@ class ConvPM(nn.Module):
 
 class ConvPM_MH(nn.Module):
     def __init__(self, num_res_blocks=2):
-        super(ConvPM, self).__init__()
-        self.id = 'ConvPM_base'
+        super(ConvPM_MH, self).__init__()
+        self.id = 'ConvPM_MH'
         self.conv = ConvBlock(34)
         for block in range(num_res_blocks):
             setattr(self, "res_%i" % block, ResBlock())
@@ -386,7 +385,7 @@ class ConvPM_MH(nn.Module):
 
 class ConvPM_QVar(nn.Module):
     def __init__(self, num_res_blocks=2):
-        super(ConvPM, self).__init__()
+        super(ConvPM_QVar, self).__init__()
         self.id = 'ConvPM_QVar'
         self.conv = ConvBlock(29)
         for block in range(num_res_blocks):
@@ -405,8 +404,8 @@ class ConvPM_QVar(nn.Module):
 
 class ConvPM_All(nn.Module):
     def __init__(self, num_res_blocks=2):
-        super(ConvPM, self).__init__()
-        self.id = 'ConvPM_base'
+        super(ConvPM_All, self).__init__()
+        self.id = 'ConvPM_All'
         self.conv = ConvBlock(41)
         for block in range(num_res_blocks):
             setattr(self, "res_%i" % block, ResBlock())

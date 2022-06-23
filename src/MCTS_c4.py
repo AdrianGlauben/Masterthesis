@@ -107,13 +107,144 @@ class UCTNode():
         return bestmove
 
 
-    def pm_best_child(self, pm):
-        inputs = [[self.child_total_value[i], self.child_priors[i], self.child_number_visits[i], self.number_visits] for i in range(len(self.child_priors))]
+    def pm_best_child(self, pm, expansions, move_history):
+        # Generate input
+        if pm.id == "SPM_base":
+            inputs = np.concatenate([self.child_total_value, self.child_priors, self.child_number_visits, [self.number_visits]], dtype=np.float32)
+
+        elif pm.id == "SPM_QVar":
+            q_var = np.array([0 if self.child_number_visits[i] == 0 else self.child_q_m2[i]/self.child_number_visits[i] for i in range(7)], dtype=np.float32)
+            inputs = np.concatenate([self.child_total_value, self.child_priors, self.child_number_visits, [self.number_visits], q_var], dtype=np.float32)
+
+        elif pm.id == "ConvPM_base":
+            inputs = np.zeros([22,6,7], dtype=np.float32)
+            # 22 Planes for standard PUCT inputs
+            plane_idx = 0
+            for d in self.child_total_value:
+                inputs[plane_idx] += d / expansions   # Normalized Total Child Value
+                plane_idx += 1
+
+            for d in self.child_priors:
+                inputs[plane_idx] += d                    # Child Prior
+                plane_idx += 1
+
+            for d in self.child_number_visits:
+                inputs[plane_idx] += d / expansions
+                plane_idx += 1
+
+            inputs[plane_idx] += self.number_visits / expansions   # Normalized Parent Visists
+
+        elif pm.id == "ConvPM_QVar":
+            inputs = np.zeros([29,6,7], dtype=np.float32)
+
+            # 22 Planes for standard PUCT inputs
+            plane_idx = 0
+            for d in self.child_total_value:
+                inputs[plane_idx] += d / expansions   # Normalized Total Child Value
+                plane_idx += 1
+
+            for d in self.child_priors:
+                inputs[plane_idx] += d                    # Child Prior
+                plane_idx += 1
+
+            for d in self.child_number_visits:
+                inputs[plane_idx] += d / expansions
+                plane_idx += 1
+
+            inputs[plane_idx] += self.number_visits / expansions   # Normalized Parent Visists
+            plane_idx += 1
+
+            # 7 Planes for Q-Variance
+            q_var = np.array([0 if self.child_number_visits[i] == 0 else self.child_q_m2[i]/self.child_number_visits[i] for i in range(7)], dtype=np.float32)
+            for d in q_var:
+                inputs[plane_idx] += d
+                plane_idx += 1
+
+        elif pm.id == "ConvPM_MH":
+            inputs = np.zeros([34,6,7], dtype=np.float32)
+
+            # 22 Planes for standard PUCT inputs
+            plane_idx = 0
+            for d in self.child_total_value:
+                inputs[plane_idx] += d / expansions   # Normalized Total Child Value
+                plane_idx += 1
+
+            for d in self.child_priors:
+                inputs[plane_idx] += d                    # Child Prior
+                plane_idx += 1
+
+            for d in self.child_number_visits:
+                inputs[plane_idx] += d / expansions
+                plane_idx += 1
+
+            inputs[plane_idx] += self.number_visits / expansions   # Normalized Parent Visists
+            plane_idx += 1
+
+            # Get current histroy
+            current_history = []
+            current = self
+            while current.move is not None:
+                cboard = copy.deepcopy(current.game)
+                pos = ed.encode_board(cboard).transpose(2,0,1)
+                current_history.insert(0, pos)
+                current = current.parent
+            input_history = move_history + current_history
+            if len(input_history) > 4:
+                input_history = input_history[-4:]
+
+            for pos in input_history:
+                for d in pos:
+                    inputs[plane_idx] += d
+                    plane_idx += 1
+
+        elif pm.id == "ConvPM_All":
+            inputs = np.zeros([41,6,7], dtype=np.float32)
+
+            # 22 Planes for standard PUCT inputs
+            plane_idx = 0
+            for d in self.child_total_value:
+                inputs[plane_idx] += d / expansions   # Normalized Total Child Value
+                plane_idx += 1
+
+            for d in self.child_priors:
+                inputs[plane_idx] += d                    # Child Prior
+                plane_idx += 1
+
+            for d in self.child_number_visits:
+                inputs[plane_idx] += d / expansions
+                plane_idx += 1
+
+            inputs[plane_idx] += self.number_visits / expansions   # Normalized Parent Visists
+            plane_idx += 1
+
+            # Get current histroy
+            current_history = []
+            current = self
+            while current.move is not None:
+                cboard = copy.deepcopy(current.game)
+                pos = ed.encode_board(cboard).transpose(2,0,1)
+                current_history.insert(0, pos)
+                current = current.parent
+            input_history = move_history + current_history
+            if len(input_history) > 4:
+                input_history = input_history[-4:]
+
+            for pos in input_history:
+                for d in pos:
+                    inputs[plane_idx] += d
+                    plane_idx += 1
+
+            q_var = np.array([0 if self.child_number_visits[i] == 0 else self.child_q_m2[i]/self.child_number_visits[i] for i in range(7)], dtype=np.float32)
+            for i, d in enumerate(q_var):
+                inputs[34+i] += d
+
+
         inputs_tensor = torch.tensor(inputs, dtype=torch.float32)
         if torch.cuda.is_available():
             inputs_tensor = inputs_tensor.cuda()
         values = pm(inputs_tensor)
         values = values.detach().cpu()
+        values = values.view(-1)
         if self.action_idxes != []:
             bestmove = self.action_idxes[np.argmax(values[self.action_idxes])]
         else:
@@ -121,11 +252,11 @@ class UCTNode():
         return bestmove
 
 
-    def select_leaf(self, generate_data=False, pm=None):
+    def select_leaf(self, generate_data=False, pm=None, expansions=1, move_history=None):
         current = self
         data = []
         while current.is_expanded:
-            best_move = current.best_child() if pm is None else current.pm_best_child(pm)
+            best_move = current.best_child() if pm is None else current.pm_best_child(pm, expansions, move_history)
             if generate_data:
                 X = current.get_data()
                 data.extend(X)
@@ -213,7 +344,7 @@ class DummyNode(object):
         self.child_q_m2 = collections.defaultdict(float)
 
 
-def UCT_search(game_state, num_reads,net,temp,c=1,generate_data=False,planning_model=None):
+def UCT_search(game_state, num_reads,net,temp,c=1,generate_data=False,planning_model=None, move_history=None):
     root = UCTNode(game_state, move=None, parent=DummyNode(), c=c)
     dataset = []
     for i in range(num_reads):
@@ -221,7 +352,7 @@ def UCT_search(game_state, num_reads,net,temp,c=1,generate_data=False,planning_m
             leaf, data = root.select_leaf(generate_data)
             dataset.extend(data)
         else:
-            leaf = root.select_leaf(pm=planning_model)
+            leaf = root.select_leaf(pm=planning_model, expansions=num_reads, move_history=move_history)
         encoded_s = ed.encode_board(leaf.game); encoded_s = encoded_s.transpose(2,0,1)
         encoded_s = torch.from_numpy(encoded_s).float().cuda()
         child_priors, value_estimate = net(encoded_s)
