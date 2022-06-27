@@ -22,7 +22,8 @@ def play_game(model, expansions_per_move=200, c=1.5):
             t = 0.1
         move_count += 1
 
-        root, data = UCT_search(current_board, expansions_per_move, model, t, c, generate_data=True)
+        root, data = UCT_search(current_board, expansions_per_move, model, t, c, generate_im_data=True)
+
         for i in range(len(data)):
             data[i][4] = move_history + data[i][4]
         dataset['data'].extend(data)

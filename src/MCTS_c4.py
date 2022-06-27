@@ -269,16 +269,16 @@ class UCTNode():
         return bestmove
 
 
-    def select_leaf(self, generate_data=False, pm=None, expansions=1, move_history=None):
+    def select_leaf(self, generate_im_data=False, generate_ppo_data=False, pm=None, expansions=1, move_history=None):
         current = self
         data = []
         while current.is_expanded:
             best_move = current.best_child() if pm is None else current.pm_best_child(pm, expansions, move_history)
-            if generate_data:
+            if generate_im_data or generate_ppo_data:
                 X = current.get_data(best_move)
-                data.extend(X)
+                data.append(X)
             current = current.maybe_add_child(best_move)
-        if generate_data:
+        if generate_im_data or generate_ppo_data:
             return current, data
         return current
 
@@ -363,12 +363,15 @@ class DummyNode(object):
         self.child_q_m2 = collections.defaultdict(float)
 
 
-def UCT_search(game_state, num_reads,net,temp,c=1,generate_data=False,planning_model=None, move_history=None):
+def UCT_search(game_state, num_reads, net, temp, c=1, generate_im_data=False, planning_model=None, move_history=None, generate_ppo_data=False):
     root = UCTNode(game_state, move=None, parent=DummyNode(), c=c)
     dataset = []
     for i in range(num_reads):
-        if generate_data:
-            leaf, data = root.select_leaf(generate_data)
+        if generate_im_data:
+            leaf, data = root.select_leaf(generate_im_data=generate_im_data)
+            dataset.extend(data)
+        elif generate_ppo_data:
+            leaf, data = root.select_leaf(pm=planning_model, expansions=num_reads, move_history=move_history, generate_ppo_data=generate_ppo_data)
             dataset.extend(data)
         else:
             leaf = root.select_leaf(pm=planning_model, expansions=num_reads, move_history=move_history)
@@ -380,7 +383,7 @@ def UCT_search(game_state, num_reads,net,temp,c=1,generate_data=False,planning_m
             leaf.backup(value_estimate); continue
         leaf.expand(child_priors) # need to make sure valid moves
         leaf.backup(value_estimate)
-    if generate_data:
+    if generate_im_data or generate_ppo_data:
         return root, dataset
     return root
 

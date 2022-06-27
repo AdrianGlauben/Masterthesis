@@ -6,6 +6,21 @@ from connect_board import board
 from encoder_decoder_c4 import encode_board
 
 
+def get_pm(pm_id):
+    if pm_id == 'SPM_base':
+        pm = SimplePM()
+    elif pm_id == 'SPM_QVar':
+        pm = SimplePM_QVar()
+    elif pm_id == 'ConvPM_base':
+        pm = ConvPM()
+    elif pm_id == 'ConvPM_QVar':
+        pm = ConvPM_QVar()
+    elif pm_id == 'ConvPM_MH':
+        pm = ConvPM_MH()
+    elif pm_id == 'ConvPM_All':
+        pm = ConvPM_All()
+    return pm
+
 
 class SPMDataset(torch.utils.data.Dataset):
     def __init__(self, dataset):
