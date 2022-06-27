@@ -25,7 +25,6 @@ def play_game(a0_model, pm, args):
         else:
             t = 0.1
         move_count += 1
-
         root, data = UCT_search(current_board, args.expansions_per_move, a0_model, t, generate_ppo_data=True, planning_model=pm, move_history=move_history_input)
         for i in range(len(data)):
             data[i][4] = move_history + data[i][4]
@@ -45,8 +44,9 @@ def play_game(a0_model, pm, args):
                 winner = 0
             checkmate = True
     print(current_board.current_board)
-    dataset['winner'] = winner
-    return dataset
+    for i in range(len(dataset['data'])):
+        dataset['data'][i].append(winner)
+    return dataset, winner
 
 
 def generate_data(args, iteration):
@@ -65,6 +65,9 @@ def generate_data(args, iteration):
         a0_model.cuda()
         pm.cuda()
 
+    pm.eval()
+    a0_model.eval()
+
     data_path = os.path.join(base_path, f'game_data/iter_{iteration}/')
 
     if not os.path.exists(data_path):
@@ -73,9 +76,9 @@ def generate_data(args, iteration):
     for i in range(args.num_games_per_iteration):
         print(f'### Iteration: {iteration+1}/{args.total_iterations} ### Game: {i+1}/{args.num_games_per_iteration} ###')
         t0 = time.time()
-        dataset = play_game(a0_model, pm, args)
+        with torch.no_grad():
+            dataset, winner = play_game(a0_model, pm, args)
         t1 = time.time()
-        winner = dataset['winner']
         print(f'--- Winner: {winner} // Time: {t1-t0:.2f}s ---')
 
         game_data_path = os.path.join(data_path, f'game_{i}')

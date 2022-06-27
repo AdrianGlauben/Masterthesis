@@ -6,6 +6,22 @@ from connect_board import board
 from encoder_decoder_c4 import encode_board
 
 
+def get_dataset(pm_id, dataset, expansions, ppo=False):
+    if pm_id == 'SPM_base':
+        ds = SPMDataset(dataset, ppo)
+    elif pm_id == 'SPM_QVar':
+        ds = SPMDataset_QVar(dataset, ppo)
+    elif pm_id == 'ConvPM_base':
+        ds = ConvPMDataset(dataset, expansions, ppo)
+    elif pm_id == 'ConvPM_QVar':
+        ds = ConvPMDataset_QVar(dataset, expansions, ppo)
+    elif pm_id == 'ConvPM_MH':
+        ds = ConvPMDataset_MH(dataset, expansions, ppo=ppo)
+    elif pm_id == 'ConvPM_All':
+        ds = ConvPMDataset_All(dataset, expansions, ppo=ppo)
+    return ds
+
+
 def get_pm(pm_id):
     if pm_id == 'SPM_base':
         pm = SimplePM()
@@ -22,9 +38,23 @@ def get_pm(pm_id):
     return pm
 
 
+class PPO_Loss(torch.nn.Module):
+    def __init__(self):
+        super(PPO_Loss, self).__init__()
+
+    def forward(self, outputs, outputs_old, labels, mask, clip_epsilon):
+        r_theta = outputs / outputs_old * labels
+        r_theta_clipped = torch.clamp(r_theta, min=1-clip_epsilon, max=1+clip_epsilon) * labels
+        l = torch.minimum(r_theta, r_theta_clipped)
+        l_masked = l * mask
+        return l.mean()
+
+
+
 class SPMDataset(torch.utils.data.Dataset):
-    def __init__(self, dataset):
+    def __init__(self, dataset, ppo=False):
         self.dataset = dataset
+        self.ppo = ppo
 
     def __len__(self):
         return len(self.dataset)
@@ -32,23 +62,29 @@ class SPMDataset(torch.utils.data.Dataset):
     def __getitem__(self, idx):
         data = self.dataset[idx]
         X = np.concatenate(data[0:4], dtype=np.float32)
-        X = np.concatenate(X, data[6], dtype=np.float32)
-        return X, self.dataset[8]
+        X = np.concatenate([X, data[6]], dtype=np.float32)
+        if self.ppo:
+            label = 1 if data[7] == data[9] else -1
+            return torch.from_numpy(X), label, torch.from_numpy(data[6])
+        return X, data[8]
 
 
 
 class SPMDataset_QVar(torch.utils.data.Dataset):
-    def __init__(self, dataset):
+    def __init__(self, dataset, ppo=False):
         self.dataset = dataset
+        self.ppo = ppo
 
     def __len__(self):
         return len(self.dataset)
 
     def __getitem__(self, idx):
         data = self.dataset[idx]
-        X = np.concatenate(data[0:4], dtype=np.float32)
-        X = np.concatenate(X, data[5:7], dtype=np.float32)
-        return X, self.dataset[8]
+        X = np.concatenate([data[0:4], data[5:7]], axis=None, dtype=np.float32)
+        if self.ppo:
+            label = 1 if data[7] == data[9] else -1
+            return torch.from_numpy(X), label, torch.from_numpy(data[6])
+        return X, data[8]
 
 
 
@@ -99,9 +135,10 @@ class SimplePM_QVar(nn.Module):
 
 
 class ConvPMDataset(torch.utils.data.Dataset):
-    def __init__(self, dataset, expansions):
+    def __init__(self, dataset, expansions, ppo=False):
         self.dataset = dataset
         self.expansions = expansions
+        self.ppo = ppo
 
     def __len__(self):
         return len(self.dataset)
@@ -131,15 +168,19 @@ class ConvPMDataset(torch.utils.data.Dataset):
             X[plane_idx] += d                   # Action mask
             plane_idx += 1
 
-        return X, self.dataset[8]
+        if self.ppo:
+            label = 1 if data[7] == data[9] else -1
+            return torch.from_numpy(X), label, torch.from_numpy(data[6])
+        return X, data[8]
 
 
 
 class ConvPMDataset_MH(torch.utils.data.Dataset):
-    def __init__(self, dataset, expansions, mh_size=4):
+    def __init__(self, dataset, expansions, mh_size=4, ppo=False):
         self.dataset = dataset
         self.expansions = expansions
         self.mh_size = mh_size
+        self.ppo = ppo
 
 
     def _get_move_history_representation(self, move_history):
@@ -190,14 +231,18 @@ class ConvPMDataset_MH(torch.utils.data.Dataset):
         for i, d in enumerate(data[6]):
             X[34+i] += d                   # Action mask
 
-        return X, self.datset[8]
+        if self.ppo:
+            label = 1 if data[7] == data[9] else -1
+            return torch.from_numpy(X), label, torch.from_numpy(data[6])
+        return X, data[8]
 
 
 
 class ConvPMDataset_QVar(torch.utils.data.Dataset):
-    def __init__(self, dataset, expansions):
+    def __init__(self, dataset, expansions, ppo=False):
         self.dataset = dataset
         self.expansions = expansions
+        self.ppo = ppo
 
     def __len__(self):
         return len(self.dataset)
@@ -232,15 +277,19 @@ class ConvPMDataset_QVar(torch.utils.data.Dataset):
             X[plane_idx] += d                   # Action mask
             plane_idx += 1
 
-        return X, self.dataset[8]
+        if self.ppo:
+            label = 1 if data[7] == data[9] else -1
+            return torch.from_numpy(X), label, torch.from_numpy(data[6])
+        return X, data[8]
 
 
 
 class ConvPMDataset_All(torch.utils.data.Dataset):
-    def __init__(self, dataset, expansions, mh_size=4):
+    def __init__(self, dataset, expansions, mh_size=4, ppo=False):
         self.dataset = dataset
         self.expansions = expansions
         self.mh_size = mh_size
+        self.ppo = ppo
 
 
     def _get_move_history_representation(self, move_history):
@@ -295,7 +344,10 @@ class ConvPMDataset_All(torch.utils.data.Dataset):
         for i, d in enumerate(data[6]):
             X[41 + i] += d
 
-        return X, self.dataset[8]
+        if self.ppo:
+            label = 1 if data[7] == data[9] else -1
+            return torch.from_numpy(X), label, torch.from_numpy(data[6])
+        return X, data[8]
 
 
 
