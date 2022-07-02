@@ -80,7 +80,7 @@ class SPMDataset_QVar(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
         data = self.dataset[idx]
-        X = np.concatenate([data[0:4], data[5:7]], axis=None, dtype=np.float32)
+        X = np.concatenate([data[0], data[1], data[2], data[3], data[5], data[6]], axis=None, dtype=np.float32)
         if self.ppo:
             label = 1 if data[7] == data[9] else -1
             return torch.from_numpy(X), label, torch.from_numpy(data[6])
@@ -89,47 +89,45 @@ class SPMDataset_QVar(torch.utils.data.Dataset):
 
 
 class SimplePM(nn.Module):
-    def __init__(self, input_size = 7*4+1, hidden_size = 64, output_size = 7):
+    def __init__(self, input_size = 7*4+1, hidden_size = 512, output_size = 7):
         super(SimplePM, self).__init__()
         self.id = 'SPM_base'
-        self.input_size = input_size
-        self.hidden_size = hidden_size
-        self.output_size = output_size
-        self.fc1 = nn.Linear(input_size, self.hidden_size)
-        self.fc2 = nn.Linear(self.hidden_size, self.hidden_size)
-        self.fc3 = nn.Linear(self.hidden_size, self.output_size)
-        self.relu = nn.ReLU()
+        self.in_fc = nn.Linear(input_size, hidden_size)
+        self.hidden_fc1 = nn.Linear(hidden_size, int(hidden_size/2))
+        self.hidden_fc2 = nn.Linear(int(hidden_size/2), int(hidden_size/4))
+        self.out_fc = nn.Linear(int(hidden_size/4), output_size)
 
 
     def forward(self, x):
-        x = self.fc1(x)
-        x = self.relu(x)
-        x = self.fc2(x)
-        x = self.relu(x)
-        x = self.fc3(x)
+        x = self.in_fc(x)
+        x = F.relu(x)
+        x = self.hidden_fc1(x)
+        x = F.relu(x)
+        x = self.hidden_fc2(x)
+        x = F.relu(x)
+        x = self.out_fc(x)
         return x
 
 
 
 class SimplePM_QVar(nn.Module):
-    def __init__(self, input_size = 7*5+1, hidden_size = 128, output_size = 7):
+    def __init__(self, input_size = 7*5+1, hidden_size = 512, output_size = 7):
         super(SimplePM_QVar, self).__init__()
         self.id = 'SPM_QVar'
-        self.input_size = input_size
-        self.hidden_size = hidden_size
-        self.output_size = output_size
-        self.fc1 = nn.Linear(input_size, self.hidden_size)
-        self.fc2 = nn.Linear(self.hidden_size, self.hidden_size)
-        self.fc3 = nn.Linear(self.hidden_size, self.output_size)
-        self.relu = nn.ReLU()
+        self.in_fc = nn.Linear(input_size, hidden_size)
+        self.hidden_fc1 = nn.Linear(hidden_size, int(hidden_size/2))
+        self.hidden_fc2 = nn.Linear(int(hidden_size/2), int(hidden_size/4))
+        self.out_fc = nn.Linear(int(hidden_size/4), output_size)
 
 
     def forward(self, x):
-        x = self.fc1(x)
-        x = self.relu(x)
-        x = self.fc2(x)
-        x = self.relu(x)
-        x = self.fc3(x)
+        x = self.in_fc(x)
+        x = F.relu(x)
+        x = self.hidden_fc1(x)
+        x = F.relu(x)
+        x = self.hidden_fc2(x)
+        x = F.relu(x)
+        x = self.out_fc(x)
         return x
 
 
@@ -143,7 +141,7 @@ class ConvPMDataset(torch.utils.data.Dataset):
     def __len__(self):
         return len(self.dataset)
 
-    def __getitem__(self):
+    def __getitem__(self, idx):
         data = self.dataset[idx]
         X = np.zeros([29,6,7], dtype=np.float32)
 
@@ -247,7 +245,7 @@ class ConvPMDataset_QVar(torch.utils.data.Dataset):
     def __len__(self):
         return len(self.dataset)
 
-    def __getitem__(self):
+    def __getitem__(self, idx):
         data = self.dataset[idx]
         X = np.zeros([36,6,7], dtype=np.float32)
 
@@ -405,7 +403,7 @@ class OutBlock(nn.Module):
 
 
 class ConvPM(nn.Module):
-    def __init__(self, num_res_blocks=4):
+    def __init__(self, num_res_blocks=2):
         super(ConvPM, self).__init__()
         self.id = 'ConvPM_base'
         self.conv = ConvBlock(29)
@@ -424,7 +422,7 @@ class ConvPM(nn.Module):
 
 
 class ConvPM_MH(nn.Module):
-    def __init__(self, num_res_blocks=4):
+    def __init__(self, num_res_blocks=2):
         super(ConvPM_MH, self).__init__()
         self.id = 'ConvPM_MH'
         self.conv = ConvBlock(41)
@@ -443,7 +441,7 @@ class ConvPM_MH(nn.Module):
 
 
 class ConvPM_QVar(nn.Module):
-    def __init__(self, num_res_blocks=4):
+    def __init__(self, num_res_blocks=2):
         super(ConvPM_QVar, self).__init__()
         self.id = 'ConvPM_QVar'
         self.conv = ConvBlock(36)
@@ -462,7 +460,7 @@ class ConvPM_QVar(nn.Module):
 
 
 class ConvPM_All(nn.Module):
-    def __init__(self, num_res_blocks=4):
+    def __init__(self, num_res_blocks=2):
         super(ConvPM_All, self).__init__()
         self.id = 'ConvPM_All'
         self.conv = ConvBlock(48)

@@ -74,7 +74,7 @@ def generate_data(args, iteration):
         os.mkdir(data_path)
 
     for i in range(args.num_games_per_iteration):
-        print(f'### Iteration: {iteration+1}/{args.total_iterations} ### Game: {i+1}/{args.num_games_per_iteration} ###')
+        print(f'\n### Iteration: {iteration+1}/{args.total_iterations} ### Game: {i+1}/{args.num_games_per_iteration} ###')
         t0 = time.time()
         with torch.no_grad():
             dataset, winner = play_game(a0_model, pm, args)

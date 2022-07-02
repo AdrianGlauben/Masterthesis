@@ -12,7 +12,7 @@ def play_game(model, expansions_per_move=200, c=1.5):
     checkmate = False
     winner = None
     move_count = 0
-    dataset = {'expansions': expansions_per_move, 'cpuct': c, 'data': []}
+    dataset = {'expansions': expansions_per_move, 'data': []}
     move_history = []
 
     while checkmate == False and current_board.actions() != []:
@@ -43,10 +43,10 @@ def play_game(model, expansions_per_move=200, c=1.5):
     return winner, dataset
 
 
-MODEL_PATH = './training_history/run2/cc4_current_net__iter74.pth.tar'
+MODEL_PATH = './training_history/run6/cc4_current_net__iter42.pth.tar'
 NUM_GAMES = 100
 
-model = ConnectNet(12)
+model = ConnectNet(6)
 
 checkpoint = torch.load(MODEL_PATH)
 model.load_state_dict(checkpoint['state_dict'])
@@ -59,7 +59,7 @@ if not os.path.isdir("data/pm_data/game_data"):
 
 for i in range(NUM_GAMES):
     print(f'Game No. {i+1}')
-    winner, dataset = play_game(model, expansions_per_move=200, c=1.5)
+    winner, dataset = play_game(model, expansions_per_move=200, c=3)
 
     completeName = os.path.join("./data/pm_data/game_data/",\
                                 f'game_{i}')

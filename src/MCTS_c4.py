@@ -13,6 +13,7 @@ from alpha_net_c4 import ConnectNet
 import datetime
 import logging
 from tqdm import tqdm
+import torch.nn.functional as F
 
 logging.basicConfig(format='%(asctime)s [%(levelname)s]: %(message)s', \
                     datefmt='%m/%d/%Y %I:%M:%S %p', level=logging.INFO)

@@ -1,12 +1,13 @@
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
-from pm_net import SPMDataset, SimplePM, ConvPMDataset, ConvPM
+import pm_net
 import random
 import os
 import pickle
 from torch.utils.tensorboard import SummaryWriter
 from datetime import datetime
+import torch.nn.functional as F
 
 dataset = {'data': []}
 data_path = "./data/pm_data/game_data/"
@@ -16,27 +17,27 @@ for idx,file in enumerate(os.listdir(data_path)):
     with open(filename, 'rb') as fo:
         game_data = pickle.load(fo, encoding='bytes')
         dataset['expansions'] = game_data['expansions']
-        dataset['cpuct'] = game_data['cpuct']
         dataset['data'].extend(game_data['data'])
 
-dataset['data'] = random.sample(dataset['data'], k=625000)
+dataset['data'] = random.sample(dataset['data'], k=1250000)
 split = int(0.8*len(dataset['data']))
 train_data = dataset['data'][:split]
 validation_data = dataset['data'][split:]
 
+
 ################################################
-#### Chose one by commenting the others out ####
+#### Chose one by commenting the other out ####
 ################################################
 
 ####               Simple PM                ####
-# train_set = SPMDataset(train_data, dataset['cpuct'])
-# validation_set = SPMDataset(validation_data, dataset['cpuct'])
-# model = SimplePM()
+# train_set = pm_net.SPMDataset_QVar(train_data)
+# validation_set = pm_net.SPMDataset_QVar(validation_data)
+# model = pm_net.SimplePM_QVar()
 
 ####                Conv PM                 ####
-train_set = ConvPMDataset(train_data, dataset['cpuct'], dataset['expansions'])
-validation_set = ConvPMDataset(validation_data, dataset['cpuct'], dataset['expansions'])
-model = ConvPM()
+train_set = pm_net.ConvPMDataset_All(train_data, dataset['expansions'])
+validation_set = pm_net.ConvPMDataset_All(validation_data, dataset['expansions'])
+model = pm_net.ConvPM_All()
 
 #################################################
 
@@ -47,7 +48,7 @@ if torch.cuda.is_available():
     model.cuda()
 
 loss_fn = torch.nn.CrossEntropyLoss()
-optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
+optimizer = torch.optim.Adam(model.parameters(), lr=0.00001, weight_decay=1e-4)
 
 
 def train_one_epoch(epoch_index, tb_writer):
@@ -87,7 +88,7 @@ def train_one_epoch(epoch_index, tb_writer):
 
 # Initializing in a separate cell so we can easily add more epochs to the same run
 timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-writer = SummaryWriter('./data/tb_logs/SimplePM_trainer_{}'.format(timestamp))
+writer = SummaryWriter('./data/tb_logs/{}_trainer_{}'.format(model.id, timestamp))
 epoch_number = 0
 
 EPOCHS = 30
@@ -105,6 +106,7 @@ for epoch in range(EPOCHS):
     model.train(False)
 
     running_vloss = 0.0
+    vacc = 0.0
     for i, vdata in enumerate(validation_loader):
         vinputs, vlabels = vdata
         if torch.cuda.is_available():
@@ -113,9 +115,13 @@ for epoch in range(EPOCHS):
         voutputs = model(vinputs)
         vloss = loss_fn(voutputs, vlabels)
         running_vloss += vloss.item()
+        for pred, target in zip(voutputs, vlabels):
+            if torch.argmax(pred) == target:
+                vacc += 1
+
 
     avg_vloss = running_vloss / (i + 1)
-    print('LOSS train {} valid {}'.format(avg_loss, avg_vloss))
+    print('LOSS train {} valid {} // ACC valid {}'.format(avg_loss, avg_vloss, vacc/len(validation_set)))
 
     # Log the running loss averaged per batch
     # for both training and validation
@@ -127,7 +133,7 @@ for epoch in range(EPOCHS):
     # Track best performance, and save the model's state
     if avg_vloss < best_vloss:
         best_vloss = avg_vloss
-        model_path = './data/pm_data/models/SimplePM_{}_{}'.format(timestamp, epoch_number)
-        torch.save(model.state_dict(), model_path)
+        model_path = './data/pm_data/models/{}_{}'.format(model.id, epoch_number)
+        torch.save({'state_dict': model.state_dict(), 'pm_id':'SPM_base'}, model_path)
 
     epoch_number += 1

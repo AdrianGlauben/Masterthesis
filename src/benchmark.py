@@ -38,6 +38,7 @@ def play_game(model_1, model_2, expansions_per_move=200, c=1.5, pre_moves=None, 
 
 
 def evaluate(model_1, model_2, expansions_per_move=200, c=1.5, use_pre_moves=True, pm_1=None, pm_2=None):
+    # [Wins Model 1, Wins Model 2, Draws] Both outputs in that order!!!!
     stats_1 = [0, 0, 0]
     stats_2 = [0, 0, 0]
 
@@ -54,7 +55,7 @@ def evaluate(model_1, model_2, expansions_per_move=200, c=1.5, use_pre_moves=Tru
             print(f'M1 / M2 ### Games played: {i+1} ### Current stats: {stats_1}')
 
         for i, moves in enumerate(pre_moves):
-            winner = play_game(model_2, model_1, expansions_per_move, moves, c, pm_1=pm_2, pm_2=pm_1)
+            winner = play_game(model_2, model_1, expansions_per_move, c, moves, pm_1=pm_2, pm_2=pm_1)
             if winner is not None:
                 stats_2[abs(winner-1)] += 1
             else:
@@ -78,16 +79,19 @@ def evaluate(model_1, model_2, expansions_per_move=200, c=1.5, use_pre_moves=Tru
                 stats_2[2] += 1
             print(f'M2 / M1 ### Games played: {i+1} ### Current Stats: {stats_2}')
 
-    return stats_1, stats_2
+    print(f'Model 1 win rate: {(stats_1[0] + stats_2[0])/100}')
+    print(f'Model 2 win rate: {(stats_1[1] + stats_2[1])/100}')
+
+    return stats_1, stats_2,
 
 
-MODEL_1_PATH = './training_history/run5/cc4_current_net__iter15.pth.tar'
-MODEL_2_PATH = './training_history/run2/cc4_current_net__iter74.pth.tar'
+MODEL_1_PATH = './training_history/run6/cc4_current_net__iter10.pth.tar'
+MODEL_2_PATH = './training_history/run6/cc4_current_net__iter42.pth.tar'
 
 PM_MODEL_1_PATH = './data/pm_data/SimplePM_run2_59'
 
-model_1 = ConnectNet(12)
-model_2 = ConnectNet(12)
+model_1 = ConnectNet(6)
+model_2 = ConnectNet(6)
 
 pm_model_1 = ConvPM_All()
 
@@ -104,4 +108,4 @@ if torch.cuda.is_available():
     model_2.cuda()
     pm_model_1.cuda()
 
-print(evaluate(model_1, model_2, 200, 1.5, True, pm_1=None, pm_2=pm_model_1))
+print(evaluate(model_1, model_2, 200, 3, True, pm_1=None, pm_2=None))
