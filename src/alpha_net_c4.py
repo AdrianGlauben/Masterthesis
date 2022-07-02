@@ -5,9 +5,9 @@ import torch.nn.functional as F
 from torch.utils.data import Dataset
 import matplotlib
 matplotlib.use("Agg")
-
-
 import numpy as np
+
+
 
 class board_data(Dataset):
     def __init__(self, dataset): # dataset = np.array of (s, p, v)
@@ -20,6 +20,8 @@ class board_data(Dataset):
     def __getitem__(self,idx):
         return np.int64(self.X[idx].transpose(2,0,1)), self.y_p[idx], self.y_v[idx]
 
+
+
 class ConvBlock(nn.Module):
     def __init__(self):
         super(ConvBlock, self).__init__()
@@ -31,6 +33,8 @@ class ConvBlock(nn.Module):
         s = s.view(-1, 3, 6, 7)  # batch_size x channels x board_x x board_y
         s = F.relu(self.bn1(self.conv1(s)))
         return s
+
+
 
 class ResBlock(nn.Module):
     def __init__(self, inplanes=128, planes=128, stride=1, downsample=None):
@@ -51,6 +55,8 @@ class ResBlock(nn.Module):
         out += residual
         out = F.relu(out)
         return out
+
+
 
 class OutBlock(nn.Module):
     def __init__(self):
@@ -77,6 +83,8 @@ class OutBlock(nn.Module):
         p = self.logsoftmax(p).exp()
         return p, v
 
+
+
 class ConnectNet(nn.Module):
     def __init__(self, num_res_blocks=8):
         super(ConnectNet, self).__init__()
@@ -92,6 +100,7 @@ class ConnectNet(nn.Module):
             s = getattr(self, "res_%i" % block)(s)
         s = self.outblock(s)
         return s
+
 
 
 class AlphaLoss(torch.nn.Module):
