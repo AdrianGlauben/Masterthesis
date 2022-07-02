@@ -9,8 +9,7 @@
 /src/data/evaluator_data/
 /src/data/model_data/
 /src/data/pm_data/
-/src/data/ppo_data
-
+/src/data/ppo_data/
 /src/data/tb_logs/
 /src/__pycache__/*
 /src/training_history/
