@@ -55,7 +55,7 @@ def generate_data(args, iteration):
     pm_path = os.path.join(base_path, pm_net_name)
     a0_model_path = os.path.join(base_path, 'a0_model.pth.tar')
 
-    a0_model = ConnectNet(12)
+    a0_model = ConnectNet(args.a0_res_blocks)
     a0_model.load_state_dict(torch.load(a0_model_path)['state_dict'])
 
     pm = pm_net.get_pm(args.pm_id)
@@ -68,7 +68,7 @@ def generate_data(args, iteration):
     pm.eval()
     a0_model.eval()
 
-    data_path = os.path.join(base_path, f'game_data/iter_{iteration}/')
+    data_path = os.path.join(base_path, f'game_data/{args.pm_id}/iter_{iteration}/')
 
     if not os.path.exists(data_path):
         os.mkdir(data_path)

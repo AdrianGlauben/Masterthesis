@@ -43,10 +43,15 @@ class PPO_Loss(torch.nn.Module):
         super(PPO_Loss, self).__init__()
 
     def forward(self, outputs, outputs_old, labels, mask, clip_epsilon):
-        r_theta = outputs / outputs_old * labels
-        r_theta_clipped = torch.clamp(r_theta, min=1-clip_epsilon, max=1+clip_epsilon) * labels
-        l = torch.minimum(r_theta, r_theta_clipped)
-        l_masked = l * mask
+        outputs = F.log_softmax(outputs, dim=1)
+        outputs_old = F.log_softmax(outputs_old, dim=1)
+
+        r_theta = torch.exp(outputs - outputs_old)
+        r_theta_clipped = torch.clamp(r_theta, min=1-clip_epsilon, max=1+clip_epsilon)
+
+        l = torch.minimum(r_theta * labels, r_theta_clipped * labels)
+
+        l = l[mask != 0]
         return l.mean()
 
 
@@ -64,7 +69,7 @@ class SPMDataset(torch.utils.data.Dataset):
         X = np.concatenate(data[0:4], dtype=np.float32)
         X = np.concatenate([X, data[6]], dtype=np.float32)
         if self.ppo:
-            label = 1 if data[7] == data[9] else -1
+            label = 0 if data[9] is None else 1 if data[7] == data[9] else -1
             return torch.from_numpy(X), label, torch.from_numpy(data[6])
         return X, data[8]
 
@@ -82,7 +87,7 @@ class SPMDataset_QVar(torch.utils.data.Dataset):
         data = self.dataset[idx]
         X = np.concatenate([data[0], data[1], data[2], data[3], data[5], data[6]], axis=None, dtype=np.float32)
         if self.ppo:
-            label = 1 if data[7] == data[9] else -1
+            label = 0 if data[9] is None else 1 if data[7] == data[9] else -1
             return torch.from_numpy(X), label, torch.from_numpy(data[6])
         return X, data[8]
 
@@ -167,7 +172,7 @@ class ConvPMDataset(torch.utils.data.Dataset):
             plane_idx += 1
 
         if self.ppo:
-            label = 1 if data[7] == data[9] else -1
+            label = 0 if data[9] is None else 1 if data[7] == data[9] else -1
             return torch.from_numpy(X), label, torch.from_numpy(data[6])
         return X, data[8]
 
@@ -230,7 +235,7 @@ class ConvPMDataset_MH(torch.utils.data.Dataset):
             X[34+i] += d                   # Action mask
 
         if self.ppo:
-            label = 1 if data[7] == data[9] else -1
+            label = 0 if data[9] is None else 1 if data[7] == data[9] else -1
             return torch.from_numpy(X), label, torch.from_numpy(data[6])
         return X, data[8]
 
@@ -276,7 +281,7 @@ class ConvPMDataset_QVar(torch.utils.data.Dataset):
             plane_idx += 1
 
         if self.ppo:
-            label = 1 if data[7] == data[9] else -1
+            label = 0 if data[9] is None else 1 if data[7] == data[9] else -1
             return torch.from_numpy(X), label, torch.from_numpy(data[6])
         return X, data[8]
 
@@ -343,7 +348,7 @@ class ConvPMDataset_All(torch.utils.data.Dataset):
             X[41 + i] += d
 
         if self.ppo:
-            label = 1 if data[7] == data[9] else -1
+            label = 0 if data[9] is None else 1 if data[7] == data[9] else -1
             return torch.from_numpy(X), label, torch.from_numpy(data[6])
         return X, data[8]
 

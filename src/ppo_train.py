@@ -11,7 +11,7 @@ from tqdm import tqdm
 def train_pm(args, iteration):
     print('Starting model training....')
     dataset = {'data': []}
-    data_path = f"./data/ppo_data/game_data/iter_{iteration}/"
+    data_path = f"./data/ppo_data/game_data/{args.pm_id}/iter_{iteration}/"
 
     for idx,file in enumerate(os.listdir(data_path)):
         filename = os.path.join(data_path,file)
@@ -44,7 +44,7 @@ def train_pm(args, iteration):
 
     pm.train()
 
-    optimizer = torch.optim.Adam(pm.parameters(), lr=args.lr)
+    optimizer = torch.optim.Adam(pm.parameters(), lr=args.lr, weight_decay=args.l2_param)
     loss_fn = pm_net.PPO_Loss()
 
     # Pass data one Epoch

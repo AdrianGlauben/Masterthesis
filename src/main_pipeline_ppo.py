@@ -16,13 +16,15 @@ if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("--total_iterations", type=int, default=3, help="Total Number of iterations.")
     parser.add_argument("--lr", type=float, default=0.0001, help="Learning rate for PMs.")
-    parser.add_argument("--num_games_per_iteration", type=int, default=1, help="The number of games per iteration.")
-    parser.add_argument("--batch_size", type=int, default=32, help="The batch size used in training.")
+    parser.add_argument("--num_games_per_iteration", type=int, default=20, help="The number of games per iteration.")
+    parser.add_argument("--batch_size", type=int, default=512, help="The batch size used in training.")
     parser.add_argument("--iteration", type=int, default=0, help="The iteration from which to resume training.")
     parser.add_argument("--temperature_MCTS", type=float, default=1.1, help="Temperature for first 10 moves of each MCTS self-play")
     parser.add_argument('--expansions_per_move', type=int, default=200, help='Number of expansions per MCTS move')
     parser.add_argument('--pm_id', type=str, default='SPM_base', help='Planning Model identifier. From: [SPM_base, SPM_QVar, ConvPM_base, ConvPM_QVar, ConvPM_MH, ConvPM_All]')
     parser.add_argument('--clip_epsilon', type=float, default=0.2, help='Epsilon for Clipped PPO objective.')
+    parser.add_argument('--l2_param', type=float, default=1e-4, help='L2-penalty parameter.')
+    parser.add_argument('--a0_res_blocks', type=int, default=6, help='Number of residual blocks of the base a0_model.')
 
     args = parser.parse_args()
 
