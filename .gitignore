@@ -10,6 +10,7 @@
 /src/data/model_data/
 /src/data/pm_data/
 /src/data/ppo_data/*
+/src/data/ppo_data/a0_model.pth.tar
 /src/data/tb_logs/
 /src/__pycache__/*
 /src/training_history/
