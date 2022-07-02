@@ -11,6 +11,7 @@ import torch
 from ppo_data_generation import play_game
 
 tensor_1 = torch.tensor([[2, 2], [3, 2]], dtype=torch.float32)
+
 tensor_2 = torch.tensor([[1, 2], [3, 4]], dtype=torch.float32)
 action_mask = torch.tensor([[1, 1], [0, 1]])
 labels = [-1, 1]
@@ -22,13 +23,10 @@ tensor_2 = torch.nn.functional.log_softmax(tensor_2, dim=1).exp()
 r = tensor_1 / tensor_2
 r_clipped = torch.clamp(r, min=0.8, max=1.2)
 
-min = torch.minimum(r * labels, r_clipped * labels)
-
-
+min = torch.min(r * labels, r_clipped * labels)
+minimum = torch.minimum(r * labels, r_clipped * labels)
 print(min)
-print(action_mask)
-min = min[action_mask != 0]
-print(min)
+print(minimum)
 exit()
 
 masked_min = min * action_mask

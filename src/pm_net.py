@@ -50,8 +50,7 @@ class PPO_Loss(torch.nn.Module):
         r_theta_clipped = torch.clamp(r_theta, min=1-clip_epsilon, max=1+clip_epsilon)
 
         l = -torch.minimum(r_theta * labels, r_theta_clipped * labels)
-
-        l = l[mask != 0]
+        # l = l[mask != 0]
         return l.mean()
 
 
