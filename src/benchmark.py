@@ -85,27 +85,37 @@ def evaluate(model_1, model_2, expansions_per_move=200, c=1.5, use_pre_moves=Tru
     return stats_1, stats_2,
 
 
-MODEL_1_PATH = './training_history/run6/cc4_current_net__iter10.pth.tar'
-MODEL_2_PATH = './training_history/run6/cc4_current_net__iter42.pth.tar'
+if __name__ == "__main__":
+    MODEL_1_PATH = './training_history/run6/cc4_current_net__iter42.pth.tar'
+    MODEL_2_PATH = './training_history/run6/cc4_current_net__iter42.pth.tar'
 
-PM_MODEL_1_PATH = './data/pm_data/SimplePM_run2_59'
+    PM_MODEL_1_PATH = './data/pm_data/models/SPM_base/SPM_base_43'
+    PM_MODEL_2_PATH = './data/pm_data/models/ConvPM_All/ConvPM_All_27'
 
-model_1 = ConnectNet(6)
-model_2 = ConnectNet(6)
+    model_1 = ConnectNet(6)
+    model_2 = ConnectNet(6)
 
-pm_model_1 = ConvPM_All()
+    pm_model_1 = SimplePM()
+    pm_model_2 = ConvPM_All()
 
-checkpoint = torch.load(MODEL_1_PATH)
-model_1.load_state_dict(checkpoint['state_dict'])
+    checkpoint = torch.load(MODEL_1_PATH)
+    model_1.load_state_dict(checkpoint['state_dict'])
 
-checkpoint = torch.load(MODEL_2_PATH)
-model_2.load_state_dict(checkpoint['state_dict'])
+    checkpoint = torch.load(MODEL_2_PATH)
+    model_2.load_state_dict(checkpoint['state_dict'])
 
-#pm_model_1.load_state_dict(torch.load(PM_MODEL_1_PATH))
+    pm_model_1.load_state_dict(torch.load(PM_MODEL_1_PATH)['state_dict'])
+    pm_model_2.load_state_dict(torch.load(PM_MODEL_2_PATH)['state_dict'])
 
-if torch.cuda.is_available():
-    model_1.cuda()
-    model_2.cuda()
-    pm_model_1.cuda()
+    if torch.cuda.is_available():
+        model_1.cuda()
+        model_2.cuda()
+        pm_model_1.cuda()
+        pm_model_2.cuda()
 
-print(evaluate(model_1, model_2, 200, 3, True, pm_1=None, pm_2=None))
+    model_1.eval()
+    model_2.eval()
+    pm_model_1.eval()
+    pm_model_2.eval()
+
+    print(evaluate(model_1, model_2, 200, 3, True, pm_1=pm_model_1, pm_2=pm_model_2))

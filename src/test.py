@@ -10,6 +10,11 @@ import pm_net
 import torch
 from ppo_data_generation import play_game
 
+with open('./data/round_robin/results/base_models', 'rb') as pkl_file:
+    results = pickle.load(pkl_file)
+print(results)
+exit()
+
 tensor_1 = torch.tensor([[2, 2], [3, 2]], dtype=torch.float32)
 
 tensor_2 = torch.tensor([[1, 2], [3, 4]], dtype=torch.float32)
