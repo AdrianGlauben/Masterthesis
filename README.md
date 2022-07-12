@@ -16,5 +16,7 @@ After placing the initialized planning models as well as the AlphaZero base mode
 execute the main_pipeline_ppo.py to optimize the planning model.
 
 Base model directory: './src/data/ppo_data/a0_base_model.pth.tar'
+
 Planning model directories: f'./src/data/ppo_data/pm_model_data/{pm_id}/{pm_id}_iter_0.pth.tar'
+
 Possible pm_ids: ['SPM_base', 'SPM_QVar', 'ConvPM_base', 'ConvPM_QVar', 'ConvPM_MH', 'ConvPM_All']
