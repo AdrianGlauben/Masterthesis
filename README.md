@@ -1,6 +1,7 @@
 # Replacing PUCT with a Planning Model
 This repository was build for my Mastersthesis at TU Darmstadt. It contains an implementation for
 replacing PUCT in AlphaZero with a learnable Planning Model.
+Our AlphaZero implementation for Connect4 is based on the implementation by Soh (2016), which can be found here: https://towardsdatascience.com/from-scratch-implementation-of-alphazero-for-connect4-f73d4554002a.
 
 ## Usage
 ### Step 1
