@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 import matplotlib.pyplot as plt
 from matplotlib.table import Table
 import pandas as pd
@@ -19,15 +17,15 @@ def view_board(np_data, fmt='{:s}', bkg_colors=['pink', 'pink']):
         idx = [j % 2, (j + 1) % 2][i % 2]
         color = bkg_colors[idx]
 
-        tb.add_cell(i, j, width, height, text=fmt.format(val), 
+        tb.add_cell(i, j, width, height, text=fmt.format(val),
                     loc='center', facecolor=color)
 
     for i, label in enumerate(data.index):
-        tb.add_cell(i, -1, width, height, text=label, loc='right', 
+        tb.add_cell(i, -1, width, height, text=label, loc='right',
                     edgecolor='none', facecolor='none')
 
     for j, label in enumerate(data.columns):
-        tb.add_cell(-1, j, width, height/2, text=label, loc='center', 
+        tb.add_cell(-1, j, width, height/2, text=label, loc='center',
                            edgecolor='none', facecolor='none')
     tb.set_fontsize(24)
     ax.add_table(tb)

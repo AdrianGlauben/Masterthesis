@@ -1,9 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Thu Jul  4 11:01:30 2019
-
-@author: WT
-"""
 from MCTS_c4 import run_MCTS
 from train_c4 import train_connectnet
 from evaluator_c4 import evaluate_nets

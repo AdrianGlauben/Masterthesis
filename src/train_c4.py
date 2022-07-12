@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 from alpha_net_c4 import ConnectNet, AlphaLoss, board_data
 import os
 import pickle
